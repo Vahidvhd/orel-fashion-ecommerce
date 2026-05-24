@@ -101,3 +101,33 @@ html {
 details[open] .filter-icon {
   transform: rotate(45deg);
 }
+
+
+.price-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #000;
+  border-radius: 9999px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.price-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #000;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.price-range::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.price-range::-moz-range-track {
+  background: transparent;
+}

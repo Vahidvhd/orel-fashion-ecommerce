@@ -4,9 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.paginator import Paginator
-from django.db.models import Count, Max, Min, Q
-from django.http import HttpResponse, JsonResponse
+from django.db.models import Max, Min, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views import View
@@ -27,7 +25,6 @@ from apps.cart.services import (
 )
 from apps.catalog.filters import filter_products, get_active_discounts_for_product
 from apps.catalog.models import Color, Product, ProductVariant, Size
-from apps.core.models import Branch
 from apps.orders.forms import ShippingForm
 from apps.orders.models import Order
 from apps.orders.services import create_order_from_cart, mock_stripe_payment
@@ -105,9 +102,9 @@ class LoginView(FormView):
 
         return redirect("storefront:home")
 
+
 class HomeView(TemplateView):
     template_name = "storefront/home.html"
-
 
 class CategoryView(ListView):
     template_name = "storefront/category.html"
@@ -118,75 +115,102 @@ class CategoryView(ListView):
         section = self.kwargs.get("section") or self.request.GET.get("section") or "men"
         return SECTION_MAP.get(section, "men")
 
-    def get_queryset(self):
+    def get_effective_section(self):
         section = self.get_section()
-        params = self.request.GET
-        min_price = params.get("min_price")
-        max_price = params.get("max_price")
+
+        if "gender" in self.request.GET:
+            return ""
+
+        return section
+
+    def get_default_gender(self):
+        section = self.get_section()
+
+        if section in ["men", "women", "kids"]:
+            return section
+
+        return ""
+
+    def get_selected_gender(self):
+        if "gender" in self.request.GET:
+            return self.request.GET.get("gender", "")
+
+        return self.get_default_gender()
+
+    def get_selected_sale(self):
+        section = self.get_section()
+        return self.request.GET.get("sale") == "1" or section == "sale"
+
+    def get_price_filters(self):
+        min_price = self.request.GET.get("min_price")
+        max_price = self.request.GET.get("max_price")
+
         try:
             min_p = Decimal(min_price) if min_price else None
         except (InvalidOperation, TypeError):
             min_p = None
+
         try:
             max_p = Decimal(max_price) if max_price else None
         except (InvalidOperation, TypeError):
             max_p = None
+
+        return min_p, max_p
+
+    def get_queryset(self):
+        params = self.request.GET
+        section = self.get_effective_section()
+        selected_gender = self.get_selected_gender()
+        on_sale = self.get_selected_sale()
+        min_p, max_p = self.get_price_filters()
+
+        base_qs = Product.objects.filter(is_active=True).prefetch_related(
+            "images",
+            "variants__color",
+            "variants__size",
+        )
+
         return filter_products(
-            Product.objects.prefetch_related("images", "variants__color", "variants__size"),
+            base_qs,
             section=section,
             category_slug=params.get("category"),
-            gender=params.get("gender"),
+            gender=selected_gender,
             min_price=min_p,
             max_price=max_p,
             color_slugs=params.getlist("color"),
             size_slugs=params.getlist("size"),
-            on_sale=params.get("sale") == "1" or section == "sale",
+            on_sale=on_sale,
             sort=params.get("sort", "newest"),
         )
 
-    
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         params = self.request.GET
-        section = self.get_section()
 
-        ctx["section"] = section
-        ctx["section_label"] = section.title()
+        display_section = self.get_section()
+        effective_section = self.get_effective_section()
+
+        selected_gender = self.get_selected_gender()
+        selected_colors = params.getlist("color")
+        selected_sizes = params.getlist("size")
+        on_sale = self.get_selected_sale()
+        min_p, max_p = self.get_price_filters()
+
+        ctx["section"] = display_section
+        ctx["section_label"] = display_section.title()
 
         base_products = Product.objects.filter(is_active=True)
 
-        if section == "new":
+        if effective_section == "new":
             base_products = base_products.filter(is_new_arrival=True)
-        elif section == "sale":
+
+        elif effective_section == "sale":
             base_products = base_products.filter(
-                variants__discounts__is_active=True,
-                variants__discounts__starts_at__lte=timezone.now(),
-                variants__discounts__ends_at__gte=timezone.now(),
-            )
-        elif section in ["men", "women", "kids"]:
-            base_products = base_products.filter(
-                Q(gender=section) | Q(category__section=section)
+                Q(discounts__is_active=True)
+                | Q(variants__discounts__is_active=True)
             )
 
         base_products = base_products.distinct()
-
-        min_price = params.get("min_price")
-        max_price = params.get("max_price")
-
-        try:
-            min_p = Decimal(min_price) if min_price else None
-        except (InvalidOperation, TypeError):
-            min_p = None
-
-        try:
-            max_p = Decimal(max_price) if max_price else None
-        except (InvalidOperation, TypeError):
-            max_p = None
-
-        selected_gender = params.get("gender", "")
-        selected_colors = params.getlist("color")
-        selected_sizes = params.getlist("size")
-        on_sale = params.get("sale") == "1" or section == "sale"
 
         def apply_filters(qs, exclude=None):
             if selected_gender and exclude != "gender":
@@ -216,12 +240,11 @@ class CategoryView(ListView):
                     variants__is_active=True,
                 )
 
-            if on_sale:
+            if on_sale and exclude != "sale":
                 now = timezone.now()
                 qs = qs.filter(
-                    variants__discounts__is_active=True,
-                    variants__discounts__starts_at__lte=now,
-                    variants__discounts__ends_at__gte=now,
+                    Q(discounts__is_active=True, discounts__starts_at__lte=now, discounts__ends_at__gte=now)
+                    | Q(variants__discounts__is_active=True, variants__discounts__starts_at__lte=now, variants__discounts__ends_at__gte=now)
                 )
 
             return qs.distinct()
@@ -268,12 +291,14 @@ class CategoryView(ListView):
         ctx["filters"] = params
         ctx["selected_colors"] = selected_colors
         ctx["selected_sizes"] = selected_sizes
+        ctx["on_sale"] = on_sale
+        query_params = params.copy()
+        query_params.pop("page", None)
+        ctx["pagination_query"] = query_params.urlencode()
 
         return ctx
 
 class ProductGridPartialView(CategoryView):
-    """HTMX partial for dynamic filter updates."""
-
     template_name = "storefront/partials/product_grid.html"
 
     def dispatch(self, request, *args, **kwargs):
@@ -310,21 +335,23 @@ class ProductDetailView(DetailView):
             is_active=True,
         ).distinct()
         ctx["discounts"] = get_active_discounts_for_product(product)
+
         variant_data = []
-        for v in variants:
-            d = v.active_discount
+        for variant in variants:
+            discount = variant.active_discount
             variant_data.append(
                 {
-                    "id": v.id,
-                    "color_slug": v.color.slug,
-                    "size_slug": v.size.slug,
-                    "price": str(v.effective_price),
-                    "original_price": str(v.price),
-                    "stock": v.stock,
-                    "in_stock": v.is_in_stock,
-                    "discount_ends": d.ends_at.isoformat() if d else None,
+                    "id": variant.id,
+                    "color_slug": variant.color.slug,
+                    "size_slug": variant.size.slug,
+                    "price": str(variant.effective_price),
+                    "original_price": str(variant.price),
+                    "stock": variant.stock,
+                    "in_stock": variant.is_in_stock,
+                    "discount_ends": discount.ends_at.isoformat() if discount else None,
                 }
             )
+
         ctx["variant_json"] = json.dumps(variant_data)
         return ctx
 
@@ -335,11 +362,12 @@ class SearchView(ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        q = self.request.GET.get("q", "").strip()
-        if not q:
+        query = self.request.GET.get("q", "").strip()
+        if not query:
             return Product.objects.none()
+
         return Product.objects.filter(
-            Q(title__icontains=q) | Q(description__icontains=q),
+            Q(title__icontains=query) | Q(description__icontains=query),
             is_active=True,
         ).prefetch_related("images")
 
@@ -365,13 +393,16 @@ class CartAddView(View):
         quantity = int(request.POST.get("quantity", 1))
         variant = get_object_or_404(ProductVariant, pk=variant_id, is_active=True)
         cart = get_or_create_cart(request)
+
         try:
             add_to_cart(cart, variant, quantity)
             messages.success(request, "Added to bag.")
-        except ValueError as e:
-            messages.error(request, str(e))
+        except ValueError as error:
+            messages.error(request, str(error))
+
         if request.headers.get("HX-Request"):
             return render(request, "storefront/partials/cart_badge.html")
+
         return redirect(request.POST.get("next") or reverse("storefront:cart"))
 
 
@@ -379,16 +410,26 @@ class CartUpdateView(View):
     def post(self, request, item_id):
         cart = get_or_create_cart(request)
         quantity = int(request.POST.get("quantity", 1))
+
         try:
             update_cart_item(cart, item_id, quantity)
-        except ValueError as e:
-            messages.error(request, str(e))
+        except ValueError as error:
+            messages.error(request, str(error))
+
         if request.headers.get("HX-Request"):
             return render(
                 request,
                 "storefront/partials/cart_items.html",
-                {"cart": cart, "items": cart.items.select_related("variant__product", "variant__color", "variant__size")},
+                {
+                    "cart": cart,
+                    "items": cart.items.select_related(
+                        "variant__product",
+                        "variant__color",
+                        "variant__size",
+                    ),
+                },
             )
+
         return redirect("storefront:cart")
 
 
@@ -396,12 +437,21 @@ class CartRemoveView(View):
     def post(self, request, item_id):
         cart = get_or_create_cart(request)
         remove_cart_item(cart, item_id)
+
         if request.headers.get("HX-Request"):
             return render(
                 request,
                 "storefront/partials/cart_items.html",
-                {"cart": cart, "items": cart.items.select_related("variant__product", "variant__color", "variant__size")},
+                {
+                    "cart": cart,
+                    "items": cart.items.select_related(
+                        "variant__product",
+                        "variant__color",
+                        "variant__size",
+                    ),
+                },
             )
+
         return redirect("storefront:cart")
 
 
@@ -417,25 +467,33 @@ class CheckoutView(LoginRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         cart = get_or_create_cart(request)
+
         if not cart.items.exists():
             messages.warning(request, "Your bag is empty.")
             return redirect("storefront:cart")
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        cart = get_or_create_cart(self.request)
-        ctx["cart"] = cart
-        ctx["items"] = cart.items.select_related("variant__product", "variant__color", "variant__size")
-        ctx["stripe_public_key"] = self.request.settings.STRIPE_PUBLIC_KEY if hasattr(self.request, "settings") else ""
         from django.conf import settings
 
+        ctx = super().get_context_data(**kwargs)
+        cart = get_or_create_cart(self.request)
+
+        ctx["cart"] = cart
+        ctx["items"] = cart.items.select_related(
+            "variant__product",
+            "variant__color",
+            "variant__size",
+        )
         ctx["stripe_public_key"] = settings.STRIPE_PUBLIC_KEY
         ctx["order_total"] = cart.subtotal + Decimal("4.99")
+
         return ctx
 
     def get_initial(self):
         user = self.request.user
+
         return {
             "first_name": user.first_name,
             "last_name": user.last_name,
@@ -455,12 +513,12 @@ class CheckoutPayPageView(LoginRequiredMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         if not request.session.get("shipping_data"):
             return redirect("storefront:checkout")
+
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        cart = get_or_create_cart(self.request)
-        ctx["cart"] = cart
+        ctx["cart"] = get_or_create_cart(self.request)
         return ctx
 
 
@@ -469,19 +527,24 @@ class CheckoutPaymentView(LoginRequiredMixin, View):
 
     def post(self, request):
         shipping_data = request.session.get("shipping_data")
+
         if not shipping_data:
             messages.error(request, "Please complete shipping information first.")
             return redirect("storefront:checkout")
+
         cart = get_or_create_cart(request)
         payment = mock_stripe_payment(cart.subtotal + Decimal("4.99"))
+
         order = create_order_from_cart(
             request.user,
             cart,
             shipping_data,
             payment_intent_id=payment["id"],
         )
+
         request.session.pop("shipping_data", None)
         messages.success(request, f"Order {order.order_number} placed successfully.")
+
         return redirect("storefront:order_detail", order_number=order.order_number)
 
 

@@ -14,14 +14,25 @@
 
       <details open class="filter-panel border-b border-neutral-200 py-5">
         <summary class="filter-summary flex justify-between cursor-pointer font-medium list-none">
-          Sort <span class="filter-icon text-lg leading-none">+</span>
+          Sort by <span class="filter-icon text-lg leading-none">+</span>
         </summary>
 
-        <select name="sort" class="mt-4 w-full border-b border-neutral-200 py-2 bg-transparent outline-none">
-          <option value="newest" {% if filters.sort == "newest" or not filters.sort %}selected{% endif %}>Newest</option>
-          <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
-          <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
-        </select>
+        <div class="mt-4 space-y-3">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" name="sort" value="newest" {% if filters.sort == "newest" or not filters.sort %}checked{% endif %}>
+            <span>Newest</span>
+          </label>
+
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" name="sort" value="price_asc" {% if filters.sort == "price_asc" %}checked{% endif %}>
+            <span>Lowest price</span>
+          </label>
+
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" name="sort" value="price_desc" {% if filters.sort == "price_desc" %}checked{% endif %}>
+            <span>Highest price</span>
+          </label>
+        </div>
       </details>
 
       <details open class="filter-panel border-b border-neutral-200 py-5">
@@ -81,10 +92,8 @@
           {% for color in colors %}
             <label class="text-center cursor-pointer">
               <input type="checkbox" name="color" value="{{ color.slug }}" class="hidden peer" {% if color.slug in selected_colors %}checked{% endif %}>
-
               <span class="mx-auto block w-8 h-8 rounded-full border border-neutral-300 peer-checked:ring-2 peer-checked:ring-black"
                     style="background: {{ color.hex_code }}"></span>
-
               <span class="block text-xs mt-1">{{ color.name }}</span>
               <span class="block text-xs text-neutral-400">({{ color.product_count }})</span>
             </label>
@@ -97,13 +106,56 @@
           Price <span class="filter-icon text-lg leading-none">+</span>
         </summary>
 
-        <div class="mt-4">
-          <div class="flex gap-2">
-            <input type="number" name="min_price" placeholder="Min" value="{{ filters.min_price }}" class="w-full border-b py-2 outline-none">
-            <input type="number" name="max_price" placeholder="Max" value="{{ filters.max_price }}" class="w-full border-b py-2 outline-none">
+        <div class="mt-5">
+          <p class="uppercase text-xs tracking-wide font-medium mb-4">Price range</p>
+
+          <div class="flex justify-between text-sm mb-4">
+            <span>£<span id="min-price-value">{{ filters.min_price|default:price_min }}</span></span>
+            <span>£<span id="max-price-value">{{ filters.max_price|default:price_max }}</span></span>
           </div>
 
-          <p class="text-xs text-center text-neutral-500 mt-3">
+          <div class="relative h-5">
+            <div class="absolute top-2 left-0 right-0 h-[2px] bg-neutral-300"></div>
+            <div id="price-track" class="absolute top-2 h-[2px] bg-black"></div>
+
+            <input
+              type="range"
+              id="min-range"
+              min="{{ price_min }}"
+              max="{{ price_max }}"
+              value="{{ filters.min_price|default:price_min }}"
+              class="price-range absolute top-0 left-0 w-full bg-transparent appearance-none pointer-events-none"
+            >
+
+            <input
+              type="range"
+              id="max-range"
+              min="{{ price_min }}"
+              max="{{ price_max }}"
+              value="{{ filters.max_price|default:price_max }}"
+              class="price-range absolute top-0 left-0 w-full bg-transparent appearance-none pointer-events-none"
+            >
+          </div>
+
+          <div class="flex gap-3 mt-5">
+            <input
+              type="number"
+              id="min-price-input"
+              name="min_price"
+              value="{{ filters.min_price|default:price_min }}"
+              class="w-full border border-neutral-300 px-3 py-2 outline-none"
+            >
+
+            <input
+              type="number"
+              id="max-price-input"
+              name="max_price"
+              value="{{ filters.max_price|default:price_max }}"
+              class="w-full border border-neutral-300 px-3 py-2 outline-none"
+            >
+          </div>
+
+          <p class="text-xs text-center text-neutral-500 mt-4">
             From £{{ price_min }} - To £{{ price_max }}
           </p>
         </div>
@@ -115,7 +167,7 @@
         </summary>
 
         <label class="flex items-center gap-2 mt-4 cursor-pointer">
-          <input type="checkbox" name="sale" value="1" {% if filters.sale %}checked{% endif %}>
+          <input type="checkbox" name="sale" value="1" {% if filters.sale == "1" or section == "sale" or on_sale %}checked{% endif %}>
           On sale only
         </label>
       </details>
@@ -128,3 +180,70 @@
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", initPriceSlider);
+  document.body.addEventListener("htmx:afterSwap", initPriceSlider);
+
+  function initPriceSlider() {
+    const minRange = document.getElementById("min-range");
+    const maxRange = document.getElementById("max-range");
+    const minInput = document.getElementById("min-price-input");
+    const maxInput = document.getElementById("max-price-input");
+    const minValue = document.getElementById("min-price-value");
+    const maxValue = document.getElementById("max-price-value");
+    const track = document.getElementById("price-track");
+
+    if (!minRange || !maxRange || !minInput || !maxInput || !track) return;
+
+    const min = Number(minRange.min);
+    const max = Number(minRange.max);
+
+    function clampValues() {
+      let minVal = Number(minRange.value);
+      let maxVal = Number(maxRange.value);
+
+      if (minVal > maxVal) {
+        minVal = maxVal;
+        minRange.value = minVal;
+      }
+
+      minInput.value = minVal;
+      maxInput.value = maxVal;
+      minValue.textContent = minVal;
+      maxValue.textContent = maxVal;
+
+      const left = max === min ? 0 : ((minVal - min) / (max - min)) * 100;
+      const right = max === min ? 100 : ((maxVal - min) / (max - min)) * 100;
+
+      track.style.left = left + "%";
+      track.style.width = (right - left) + "%";
+    }
+
+    function triggerFilter() {
+      if (window.htmx) {
+        htmx.trigger("#filter-form", "change");
+      }
+    }
+
+    minRange.addEventListener("input", clampValues);
+    maxRange.addEventListener("input", clampValues);
+
+    minRange.addEventListener("change", triggerFilter);
+    maxRange.addEventListener("change", triggerFilter);
+
+    minInput.addEventListener("change", function () {
+      minRange.value = minInput.value;
+      clampValues();
+      triggerFilter();
+    });
+
+    maxInput.addEventListener("change", function () {
+      maxRange.value = maxInput.value;
+      clampValues();
+      triggerFilter();
+    });
+
+    clampValues();
+  }
+</script>

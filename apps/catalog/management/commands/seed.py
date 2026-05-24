@@ -9,15 +9,14 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
-from apps.accounts.models import User
-from apps.catalog.models import Category, Color, Discount, Product, ProductImage, ProductVariant, Size
+from apps.catalog.models import Category, Color, Discount, Product, ProductVariant, Size
 from apps.core.models import Branch, HeroContent
 
 User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = "Seed database with brand, products, branches, and demo users"
+    help = "Seed database with demo data"
 
     def handle(self, *args, **options):
         self.stdout.write("Seeding database...")
@@ -36,11 +35,22 @@ class Command(BaseCommand):
             ("Camel", "#c4a574"),
             ("Burgundy", "#722f37"),
             ("Stone", "#9a9a8e"),
+            ("Olive", "#556b2f"),
+            ("Grey", "#808080"),
+            ("Cream", "#fffdd0"),
+            ("Chocolate", "#7b3f00"),
         ]
         for name, hex_code in colors:
             Color.objects.get_or_create(name=name, defaults={"hex_code": hex_code})
 
-        sizes = [("XS", 1), ("S", 2), ("M", 3), ("L", 4), ("XL", 5), ("XXL", 6)]
+        sizes = [
+            ("XS", 1),
+            ("S", 2),
+            ("M", 3),
+            ("L", 4),
+            ("XL", 5),
+            ("XXL", 6),
+        ]
         for name, order in sizes:
             Size.objects.get_or_create(name=name, defaults={"sort_order": order})
 
@@ -80,7 +90,7 @@ class Command(BaseCommand):
                 "phone": "+44 20 7946 0123",
                 "latitude": Decimal("51.510357"),
                 "longitude": Decimal("-0.136439"),
-                "map_embed_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2483.0!2d-0.1364!3d51.5104!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1",
+                "map_embed_url": "",
                 "opening_hours": "Mon–Sat 10:00–20:00, Sun 12:00–18:00",
             },
             {
@@ -91,7 +101,7 @@ class Command(BaseCommand):
                 "phone": "+44 161 496 0456",
                 "latitude": Decimal("53.480759"),
                 "longitude": Decimal("-2.242631"),
-                "map_embed_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2374.0!2d-2.2426!3d53.4808!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1",
+                "map_embed_url": "",
                 "opening_hours": "Mon–Sat 10:00–19:00",
             },
             {
@@ -103,80 +113,148 @@ class Command(BaseCommand):
                 "phone": "+98 21 8876 2345",
                 "latitude": Decimal("35.721858"),
                 "longitude": Decimal("51.410341"),
-                "map_embed_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3239.0!2d51.4103!3d35.7219!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1",
+                "map_embed_url": "",
                 "opening_hours": "Sat–Thu 10:00–21:00",
             },
         ]
-        for i, data in enumerate(branches):
-            Branch.objects.get_or_create(name=data["name"], defaults={**data, "sort_order": i})
+
+        for index, data in enumerate(branches):
+            Branch.objects.get_or_create(
+                name=data["name"],
+                defaults={**data, "sort_order": index},
+            )
 
     def _seed_products(self):
-        if Product.objects.exists():
-            self.stdout.write("Products already exist, skipping product seed.")
-            return
+        self.stdout.write("Resetting demo products...")
 
-        men_cat = Category.objects.filter(section=Category.Section.MEN).first()
-        women_cat = Category.objects.filter(section=Category.Section.WOMEN).first()
-        colors = list(Color.objects.all()[:4])
-        sizes = list(Size.objects.filter(name__in=["S", "M", "L", "XL"]))
+        Discount.objects.all().delete()
+        ProductVariant.objects.all().delete()
+        Product.objects.all().delete()
 
-        catalog = [
-            ("Structured Wool Coat", "men", men_cat, True, Decimal("189.00")),
-            ("Relaxed Linen Shirt", "men", men_cat, True, Decimal("59.00")),
-            ("Tailored Pleat Trousers", "men", men_cat, False, Decimal("79.00")),
-            ("Merino Crew Jumper", "men", men_cat, False, Decimal("89.00")),
-            ("Slim Fit Denim", "men", men_cat, False, Decimal("69.00")),
-            ("Silk Blend Evening Shirt", "men", men_cat, True, Decimal("99.00")),
-            ("Oversized Trench", "women", women_cat, True, Decimal("219.00")),
-            ("Midi Satin Dress", "women", women_cat, True, Decimal("129.00")),
-            ("Cashmere Roll Neck", "women", women_cat, False, Decimal("149.00")),
-            ("High Waist Wide Leg", "women", women_cat, False, Decimal("89.00")),
-            ("Draped Blouse", "women", women_cat, True, Decimal("69.00")),
-            ("Wool Blend Blazer", "women", women_cat, False, Decimal("159.00")),
+        men_categories = list(Category.objects.filter(section=Category.Section.MEN))
+        women_categories = list(Category.objects.filter(section=Category.Section.WOMEN))
+        kids_categories = list(Category.objects.filter(section=Category.Section.KIDS))
+
+        colors = list(Color.objects.all().order_by("name"))
+        sizes = list(Size.objects.all().order_by("sort_order"))
+
+        men_models = [
+            ("Wool Coat", "A structured men wool coat with premium lining.", Decimal("189.00")),
+            ("Cotton Shirt", "A breathable men cotton shirt for everyday styling.", Decimal("49.00")),
+            ("Tailored Trousers", "Modern men tailored trousers with a clean fit.", Decimal("79.00")),
+            ("Knit Jumper", "Soft men knit jumper for colder seasons.", Decimal("89.00")),
+            ("Denim Jacket", "Classic men denim jacket with durable stitching.", Decimal("99.00")),
+            ("Blazer", "Minimal men blazer with polished tailoring.", Decimal("159.00")),
+            ("Puffer Jacket", "Lightweight men puffer jacket with insulated warmth.", Decimal("129.00")),
+            ("Linen Shirt", "Light men linen shirt for warm days.", Decimal("59.00")),
+            ("Slim Fit Jeans", "Everyday men slim fit jeans with a modern cut.", Decimal("74.00")),
+            ("Overshirt", "Layered men overshirt with a structured finish.", Decimal("84.00")),
         ]
 
-        for i, (title, gender, category, is_new, base_price) in enumerate(catalog):
-            product = Product.objects.create(
-                title=title,
-                description=f"Premium {title.lower()} crafted for Orel Fashion. "
-                "Designed with refined silhouettes and exceptional fabrics.",
-                category=category,
-                gender=gender,
-                is_new_arrival=is_new,
-                is_active=True,
-            )
-            for idx, color in enumerate(colors[:3]):
-                for j, size in enumerate(sizes):
-                    price = base_price + Decimal(j * 5)
-                    stock = 10 - (idx + j) % 12
-                    ProductVariant.objects.create(
-                        product=product,
-                        color=color,
-                        size=size,
-                        price=price,
-                        stock=max(0, stock),
-                    )
-            if i == 0:
-                variant = product.variants.first()
-                now = timezone.now()
-                Discount.objects.create(
-                    variant=variant,
-                    percentage=20,
-                    starts_at=now - timedelta(hours=1),
-                    ends_at=now + timedelta(days=7),
-                    label="Limited time deal",
+        women_models = [
+            ("Wool Coat", "A structured women wool coat with premium lining.", Decimal("199.00")),
+            ("Satin Dress", "Elegant women satin dress with a smooth drape.", Decimal("119.00")),
+            ("Knit Jumper", "Soft women knit jumper for colder seasons.", Decimal("79.00")),
+            ("Wide Leg Jeans", "Comfortable women wide leg jeans.", Decimal("74.00")),
+            ("Blazer", "Minimal women blazer with polished tailoring.", Decimal("149.00")),
+            ("Draped Blouse", "Soft women draped blouse with a refined shape.", Decimal("69.00")),
+            ("Puffer Jacket", "Lightweight women puffer jacket with insulated warmth.", Decimal("129.00")),
+            ("Linen Top", "Light women linen top for warm days.", Decimal("39.00")),
+            ("Midi Skirt", "Elegant women midi skirt with a soft drape.", Decimal("64.00")),
+            ("Trench Coat", "Classic women trench coat with a timeless finish.", Decimal("179.00")),
+        ]
+
+        kids_models = [
+            ("Wool Coat", "Warm kids wool coat with soft lining.", Decimal("89.00")),
+            ("Cotton Shirt", "Breathable kids cotton shirt for everyday outfits.", Decimal("29.00")),
+            ("Trousers", "Comfortable kids trousers with durable stitching.", Decimal("34.00")),
+            ("Knit Jumper", "Soft kids knit jumper for warmth and comfort.", Decimal("39.00")),
+            ("Denim Jacket", "Classic kids denim jacket with relaxed styling.", Decimal("49.00")),
+            ("Puffer Jacket", "Lightweight kids puffer jacket with insulated warmth.", Decimal("69.00")),
+            ("Linen Top", "Light kids linen top for warm days.", Decimal("24.00")),
+            ("Jeans", "Durable kids jeans with a comfortable fit.", Decimal("36.00")),
+            ("Hoodie", "Soft kids hoodie with a cozy fit.", Decimal("42.00")),
+            ("Dress", "Comfortable kids dress with a polished look.", Decimal("44.00")),
+        ]
+
+        gender_configs = [
+            ("women", "Women", women_categories, women_models, 50),
+            ("men", "Men", men_categories, men_models, 50),
+            ("kids", "Kids", kids_categories, kids_models, 50),
+        ]
+
+        now = timezone.now()
+        total_products = 0
+        total_variants = 0
+        total_sales = 0
+
+        for gender, prefix, category_pool, model_list, product_total in gender_configs:
+            if not category_pool:
+                self.stdout.write(self.style.WARNING(f"No category found for {prefix}. Skipping."))
+                continue
+
+            gender_sale_count = 0
+
+            for i in range(1, product_total + 1):
+                total_products += 1
+
+                model_name, description, base_price = model_list[(i - 1) % len(model_list)]
+                category = category_pool[(i - 1) % len(category_pool)]
+
+                product = Product.objects.create(
+                    title=f"{prefix} {model_name} {i:03d}",
+                    description=(
+                        f"{description} Demo item for testing filters by gender, "
+                        f"color, size, price, newest, lowest price, highest price, and sale."
+                    ),
+                    category=category,
+                    gender=gender,
+                    is_new_arrival=i <= 15,
+                    is_active=True,
                 )
 
-        # Extra products to fill grids
-        for n in range(13, 45):
-            cat = women_cat if n % 2 else men_cat
-            Product.objects.create(
-                title=f"Collection Piece {n:02d}",
-                description="A timeless addition to your wardrobe.",
-                category=cat,
-                gender="women" if n % 2 else "men",
-                is_active=True,
+                for color_index, color in enumerate(colors):
+                    for size_index, size in enumerate(sizes):
+                        price = (
+                            base_price
+                            + Decimal(i % 12) * Decimal("3.00")
+                            + Decimal(color_index * 2)
+                            + Decimal(size_index * 4)
+                        )
+
+                        ProductVariant.objects.create(
+                            product=product,
+                            color=color,
+                            size=size,
+                            price=price,
+                            stock=5 + ((i + color_index + size_index) % 25),
+                            is_active=True,
+                        )
+                        total_variants += 1
+
+                if i <= 4 or i % 10 == 0:
+                    Discount.objects.create(
+                        product=product,
+                        percentage=15 + ((i % 3) * 5),
+                        starts_at=now - timedelta(hours=2),
+                        ends_at=now + timedelta(days=7),
+                        label="Limited time deal",
+                        is_active=True,
+                    )
+                    gender_sale_count += 1
+                    total_sales += 1
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"{prefix}: created {product_total} products, all colors, all sizes, {gender_sale_count} sales."
+                )
             )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Created {total_products} products, {total_variants} variants, {total_sales} sale deals."
+            )
+        )
 
     def _seed_users(self):
         if not User.objects.filter(email="admin@maisonatelier.com").exists():

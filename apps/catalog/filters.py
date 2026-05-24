@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db.models import Min, Q
+from django.db.models import DecimalField, OuterRef, Q, Subquery
 from django.utils import timezone
 
 from apps.catalog.models import Discount, ProductVariant
@@ -35,9 +35,7 @@ def get_sale_product_ids():
             variant_qs = variant_qs.filter(size_id=discount.size_id)
 
         if discount.color_id or discount.size_id:
-            product_ids.update(
-                variant_qs.values_list("product_id", flat=True)
-            )
+            product_ids.update(variant_qs.values_list("product_id", flat=True))
 
     return product_ids
 
@@ -55,15 +53,13 @@ def filter_products(
     on_sale=False,
     sort="newest",
 ):
-    qs = queryset.filter(is_active=True).distinct()
+    qs = queryset.filter(is_active=True)
 
     if section:
         if section == "new":
             qs = qs.filter(is_new_arrival=True)
-
         elif section == "sale":
             qs = qs.filter(id__in=get_sale_product_ids())
-
         else:
             qs = qs.filter(Q(gender=section) | Q(category__section=section))
 
@@ -73,45 +69,55 @@ def filter_products(
     if category_slug:
         qs = qs.filter(category__slug=category_slug)
 
-    variant_q = Q(variants__is_active=True)
+    matching_variants = ProductVariant.objects.filter(is_active=True)
 
     if color_slugs:
-        variant_q &= Q(variants__color__slug__in=color_slugs)
+        matching_variants = matching_variants.filter(color__slug__in=color_slugs)
 
     if size_slugs:
-        variant_q &= Q(variants__size__slug__in=size_slugs)
+        matching_variants = matching_variants.filter(size__slug__in=size_slugs)
 
     if min_price is not None:
-        variant_q &= Q(variants__price__gte=Decimal(str(min_price)))
+        matching_variants = matching_variants.filter(price__gte=Decimal(str(min_price)))
 
     if max_price is not None:
-        variant_q &= Q(variants__price__lte=Decimal(str(max_price)))
+        matching_variants = matching_variants.filter(price__lte=Decimal(str(max_price)))
 
-    qs = qs.filter(variant_q)
+    qs = qs.filter(id__in=matching_variants.values("product_id"))
 
     if on_sale:
         qs = qs.filter(id__in=get_sale_product_ids())
 
-    qs = qs.annotate(min_variant_price=Min("variants__price"))
+    min_price_subquery = matching_variants.filter(
+        product_id=OuterRef("pk")
+    ).order_by("price").values("price")[:1]
+
+    max_price_subquery = matching_variants.filter(
+        product_id=OuterRef("pk")
+    ).order_by("-price").values("price")[:1]
+
+    qs = qs.annotate(
+        display_price=Subquery(min_price_subquery, output_field=DecimalField()),
+        display_max_price=Subquery(max_price_subquery, output_field=DecimalField()),
+    )
 
     if sort == "price_asc":
-        qs = qs.order_by("min_variant_price")
-    elif sort == "price_desc":
-        qs = qs.order_by("-min_variant_price")
-    else:
-        qs = qs.order_by("-created_at")
+        return qs.order_by("display_price", "id")
 
-    return qs.distinct()
+    if sort == "price_desc":
+        return qs.order_by("-display_max_price", "id")
+
+    return qs.order_by("-created_at", "id")
 
 
 def get_active_discounts_for_product(product):
     now = timezone.now()
 
     return Discount.objects.filter(
-        Q(product=product) |
-        Q(variant__product=product) |
-        Q(color__productvariant__product=product) |
-        Q(size__productvariant__product=product),
+        Q(product=product)
+        | Q(variant__product=product)
+        | Q(color__productvariant__product=product)
+        | Q(size__productvariant__product=product),
         is_active=True,
         starts_at__lte=now,
         ends_at__gte=now,
