@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ product.title }} — {{ brand_name }}{% endblock %}
+
+{% block content %}
+<script type="application/json" id="variant-data">{{ variant_json }}</script>
+<div class="pt-24 pb-20" x-data="productPage(JSON.parse(document.getElementById('variant-data').textContent))">
+  <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+    <div class="product-gallery" x-data="{ active: 0 }">
+      <div class="aspect-[3/4] bg-neutral-100 overflow-hidden mb-4">
+        {% for image in product.images.all %}
+        <img x-show="active === {{ forloop.counter0 }}" src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.title }}"
+             class="w-full h-full object-cover" {% if not forloop.first %}x-cloak{% endif %}>
+        {% empty %}
+        <div class="w-full h-full skeleton"></div>
+        {% endfor %}
+      </div>
+      {% if product.images.count > 1 %}
+      <div class="flex gap-2 overflow-x-auto pb-2">
+        {% for image in product.images.all %}
+        <button @click="active = {{ forloop.counter0 }}" class="shrink-0 w-20 h-24 border-2 overflow-hidden"
+                :class="active === {{ forloop.counter0 }} ? 'border-brand' : 'border-transparent'">
+          <img src="{{ image.image.url }}" alt="" class="w-full h-full object-cover">
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    <div>
+      <h1 class="font-serif text-3xl lg:text-4xl">{{ product.title }}</h1>
+      <p class="mt-4 text-brand-muted leading-relaxed">{{ product.description }}</p>
+      <div class="mt-8 flex items-baseline gap-3">
+        <span class="text-xl" x-text="'£' + displayPrice">£{{ product.min_price }}</span>
+        <span x-show="hasDiscount" class="text-sm text-brand-muted line-through" x-text="'£' + originalPrice"></span>
+      </div>
+      <template x-if="hasDiscount && countdownEnd">
+        <div class="mt-4 p-4 bg-neutral-50 border border-neutral-100">
+          <p class="text-xs tracking-widest uppercase text-accent">Limited time deal</p>
+          <p class="mt-2 text-sm font-mono" x-text="countdownText">Loading...</p>
+        </div>
+      </template>
+      <div class="mt-10">
+        <p class="text-xs tracking-widest uppercase mb-3">Colour</p>
+        <div class="flex flex-wrap gap-2">
+          {% for color in colors %}
+          <button type="button" @click="selectColor('{{ color.slug }}')"
+                  :class="selectedColor === '{{ color.slug }}' ? 'ring-2 ring-brand' : ''"
+                  class="w-10 h-10 rounded-full border border-neutral-200 transition-all"
+                  style="background: {{ color.hex_code }}"
+                  title="{{ color.name }}"
+                  :disabled="!colorAvailable('{{ color.slug }}')"
+                  :class="!colorAvailable('{{ color.slug }}') ? 'opacity-30 cursor-not-allowed' : ''"></button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="mt-8">
+        <p class="text-xs tracking-widest uppercase mb-3">Size</p>
+        <div class="flex flex-wrap gap-2">
+          {% for size in sizes %}
+          <button type="button" @click="selectSize('{{ size.slug }}')"
+                  :disabled="!sizeAvailable('{{ size.slug }}')"
+                  :class="{
+                    'bg-brand text-white': selectedSize === '{{ size.slug }}',
+                    'opacity-30 cursor-not-allowed': !sizeAvailable('{{ size.slug }}'),
+                    'border border-neutral-300 hover:border-brand': sizeAvailable('{{ size.slug }}')
+                  }"
+                  class="min-w-[48px] px-4 py-2 text-sm transition-all">{{ size.name }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <form method="post" action="{% url 'storefront:cart_add' %}" class="mt-10"
+            hx-post="{% url 'storefront:cart_add' %}"
+            hx-target="#cart-badge"
+            hx-swap="innerHTML"
+            @htmx:after-request="document.body.dispatchEvent(new Event('cartUpdated'))">
+        {% csrf_token %}
+        <input type="hidden" name="variant_id" :value="selectedVariantId">
+        <input type="hidden" name="quantity" value="1">
+        <button type="submit" :disabled="!canAddToCart"
+                class="w-full py-4 bg-brand text-white text-xs tracking-[0.2em] uppercase disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-light transition-colors">
+          Add to Bag
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function productPage(variants) {
+  const parsed = typeof variants === 'string' ? JSON.parse(variants) : variants;
+  return {
+    variants: parsed,
+    selectedColor: parsed.find(v => v.in_stock)?.color_slug || parsed[0]?.color_slug,
+    selectedSize: null,
+    selectedVariantId: null,
+    displayPrice: '0',
+    originalPrice: '0',
+    hasDiscount: false,
+    countdownEnd: null,
+    countdownText: '',
+    init() {
+      const first = this.findVariant(this.selectedColor, this.selectedSize);
+      if (first) {
+        this.selectedSize = first.size_slug;
+        this.updateSelection();
+      }
+      this.tickCountdown();
+      setInterval(() => this.tickCountdown(), 1000);
+    },
+    findVariant(color, size) {
+      return this.variants.find(v => v.color_slug === color && (!size || v.size_slug === size));
+    },
+    selectColor(slug) {
+      if (!this.colorAvailable(slug)) return;
+      this.selectedColor = slug;
+      if (!this.sizeAvailable(this.selectedSize)) {
+        const v = this.variants.find(x => x.color_slug === slug && x.in_stock);
+        this.selectedSize = v?.size_slug;
+      }
+      this.updateSelection();
+    },
+    selectSize(slug) {
+      if (!this.sizeAvailable(slug)) return;
+      this.selectedSize = slug;
+      this.updateSelection();
+    },
+    colorAvailable(slug) {
+      return this.variants.some(v => v.color_slug === slug && v.in_stock);
+    },
+    sizeAvailable(slug) {
+      return this.variants.some(v => v.color_slug === this.selectedColor && v.size_slug === slug && v.in_stock);
+    },
+    updateSelection() {
+      const v = this.findVariant(this.selectedColor, this.selectedSize);
+      if (v) {
+        this.selectedVariantId = v.id;
+        this.displayPrice = v.price;
+        this.originalPrice = v.original_price;
+        this.hasDiscount = parseFloat(v.original_price) > parseFloat(v.price);
+        this.countdownEnd = v.discount_ends;
+      }
+    },
+    get canAddToCart() {
+      const v = this.findVariant(this.selectedColor, this.selectedSize);
+      return v && v.in_stock && this.selectedVariantId;
+    },
+    tickCountdown() {
+      if (!this.countdownEnd) return;
+      const end = new Date(this.countdownEnd).getTime();
+      const now = Date.now();
+      let diff = Math.max(0, Math.floor((end - now) / 1000));
+      const h = Math.floor(diff / 3600);
+      diff %= 3600;
+      const m = Math.floor(diff / 60);
+      const s = diff % 60;
+      this.countdownText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    },
+  };
+}
+</script>
+{% endblock %}

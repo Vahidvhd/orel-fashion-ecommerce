@@ -1,0 +1,29 @@
+{% extends "superusers/base.html" %}
+
+{% block content %}
+<section class="min-h-screen px-6 py-10">
+  <h1 class="text-3xl font-semibold mb-6">Business Dashboard</h1>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {% if request.user.role == "owner" or request.user.role == "inventory" or request.user.role == "sales" %}
+      <a href="{% url 'superusers:products' %}" class="border p-6 hover:bg-black hover:text-white transition">Products</a>
+    {% endif %}
+
+    {% if request.user.role == "owner" or request.user.role == "finance" or request.user.role == "sales" %}
+      <a href="{% url 'superusers:orders' %}" class="border p-6 hover:bg-black hover:text-white transition">Orders</a>
+    {% endif %}
+
+    {% if request.user.role == "owner" or request.user.role == "sales" %}
+      <a href="{% url 'superusers:discounts' %}" class="border p-6 hover:bg-black hover:text-white transition">Discounts</a>
+    {% endif %}
+
+    {% if request.user.role == "owner" %}
+      <a href="{% url 'superusers:branches' %}" class="border p-6 hover:bg-black hover:text-white transition">Branches</a>
+    {% endif %}
+
+    {% if request.user.role == "owner" or request.user.role == "finance" %}
+      <a href="{% url 'superusers:finance' %}" class="border p-6 hover:bg-black hover:text-white transition">Finance</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

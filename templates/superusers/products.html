@@ -1,0 +1,18 @@
+{% extends "superusers/base.html" %}
+
+{% block content %}
+<section class="min-h-screen px-6 py-10">
+  <h1 class="text-3xl font-semibold mb-6">Products</h1>
+
+  <div class="space-y-4">
+    {% for product in products %}
+      <div class="border p-4 flex justify-between">
+        <span>{{ product.name|default:product.title }}</span>
+        <span>{{ product.created_at }}</span>
+      </div>
+    {% empty %}
+      <p>No products found.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

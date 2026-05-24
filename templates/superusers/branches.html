@@ -1,0 +1,17 @@
+{% extends "superusers/base.html" %}
+
+{% block content %}
+<section class="min-h-screen px-6 py-10">
+  <h1 class="text-3xl font-semibold mb-6">Branches</h1>
+
+  <div class="space-y-4">
+    {% for branch in branches %}
+      <div class="border p-4">
+        {{ branch }}
+      </div>
+    {% empty %}
+      <p>No branches found.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

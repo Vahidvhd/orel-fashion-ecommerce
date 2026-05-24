@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Business Dashboard{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-neutral-100 text-neutral-900">
+  <div class="min-h-screen flex">
+
+    <aside class="w-72 bg-white border-r border-neutral-200 min-h-screen fixed left-0 top-0 p-6">
+      <h1 class="font-serif text-2xl tracking-widest uppercase mb-10">
+        Admin
+      </h1>
+
+      <nav class="space-y-2 text-sm">
+
+        <a href="{% url 'superusers:dashboard' %}" class="block px-4 py-3 rounded hover:bg-neutral-100">
+          Dashboard
+        </a>
+
+        {% if request.user.role == "owner" or request.user.role == "sales" or request.user.role == "inventory" %}
+          <a href="{% url 'superusers:products' %}" class="block px-4 py-3 rounded hover:bg-neutral-100">
+            Products
+          </a>
+        {% else %}
+          <div class="px-4 py-3 rounded text-neutral-400 cursor-not-allowed">
+            🔒 Products
+          </div>
+        {% endif %}
+
+        {% if request.user.role == "owner" or request.user.role == "sales" or request.user.role == "inventory" %}
+          <a href="{% url 'superusers:add_product' %}" class="block px-4 py-3 rounded hover:bg-neutral-100">
+            Add Product
+          </a>
+        {% else %}
+          <div class="px-4 py-3 rounded text-neutral-400 cursor-not-allowed">
+            🔒 Add Product
+          </div>
+        {% endif %}
+
+        {% if request.user.role == "owner" or request.user.role == "sales" %}
+          <a href="{% url 'superusers:hero' %}" class="block px-4 py-3 rounded hover:bg-neutral-100">
+            Hero Content
+          </a>
+        {% else %}
+          <div class="px-4 py-3 rounded text-neutral-400 cursor-not-allowed">
+            🔒 Hero Content
+          </div>
+        {% endif %}
+
+        {% if request.user.role == "owner" or request.user.role == "finance" or request.user.role == "sales" %}
+          <a href="{% url 'superusers:orders' %}" class="block px-4 py-3 rounded hover:bg-neutral-100">
+            Orders
+          </a>
+        {% else %}
+          <div class="px-4 py-3 rounded text-neutral-400 cursor-not-allowed">
+            🔒 Orders
+          </div>
+        {% endif %}
+
+        {% if request.user.role == "owner" or request.user.role == "sales" %}
+          <a href="{% url 'superusers:discounts' %}" class="block px-4 py-3 rounded hover:bg-neutral-100">
+            Discounts
+          </a>
+        {% else %}
+          <div class="px-4 py-3 rounded text-neutral-400 cursor-not-allowed">
+            🔒 Discounts
+          </div>
+        {% endif %}
+
+        {% if request.user.role == "owner" %}
+          <a href="{% url 'superusers:branches' %}" class="block px-4 py-3 rounded hover:bg-neutral-100">
+            Branches
+          </a>
+        {% else %}
+          <div class="px-4 py-3 rounded text-neutral-400 cursor-not-allowed">
+            🔒 Branches
+          </div>
+        {% endif %}
+
+        {% if request.user.role == "owner" or request.user.role == "finance" %}
+          <a href="{% url 'superusers:finance' %}" class="block px-4 py-3 rounded hover:bg-neutral-100">
+            Finance
+          </a>
+        {% else %}
+          <div class="px-4 py-3 rounded text-neutral-400 cursor-not-allowed">
+            🔒 Finance
+          </div>
+        {% endif %}
+
+      </nav>
+
+      <div class="absolute bottom-6 left-6 right-6">
+        <p class="text-xs text-neutral-500 mb-3">
+          Logged in as {{ request.user.email }}
+        </p>
+
+        <form method="post" action="{% url 'storefront:logout' %}">
+          {% csrf_token %}
+          <button class="w-full bg-black text-white py-3 text-xs tracking-widest uppercase">
+            Logout
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="ml-72 w-full min-h-screen p-10">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+</body>
+</html>

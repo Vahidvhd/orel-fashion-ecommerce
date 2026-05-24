@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Search — {{ brand_name }}{% endblock %}
+{% block content %}
+<div class="pt-24 pb-20 max-w-7xl mx-auto px-4">
+  <h1 class="font-serif text-3xl mb-8">Search{% if request.GET.q %}: {{ request.GET.q }}{% endif %}</h1>
+  {% include "storefront/partials/product_grid.html" %}
+</div>
+{% endblock %}

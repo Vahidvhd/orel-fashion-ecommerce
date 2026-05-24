@@ -1,0 +1,90 @@
+[x-cloak] { display: none !important; }
+
+.nav-link {
+  @apply text-brand hover:opacity-60 transition-opacity duration-300;
+}
+
+/* Luxury animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-hero-title {
+  animation: fadeInUp 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--delay, 0ms);
+}
+
+.reveal-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gender-card:hover .absolute.inset-0:last-child {
+  transform: scale(1.05);
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Smooth scroll sections */
+.scroll-reveal {
+  scroll-margin-top: 5rem;
+}
+
+/* Product card hover */
+.product-card img {
+  will-change: transform;
+}
+
+/* Focus accessibility */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 2px;
+}
+
+/* Header height sync with hero */
+#site-header nav {
+  height: 4rem;
+}
+
+.home-hero {
+  margin-top: 4rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}

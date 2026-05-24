@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" x-data="{ searchOpen: false, mobileOpen: false }">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>{% block title %}{{ brand_name }}{% endblock %}</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+
+<body class="bg-white text-brand antialiased">
+  {% include "storefront/partials/header.html" %}
+
+  <main>
+    {% if messages %}
+      <div class="fixed top-20 right-6 z-50 space-y-2">
+        {% for message in messages %}
+          <div class="bg-brand text-white px-5 py-3 shadow-lg text-sm">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% include "storefront/partials/footer.html" %}
+
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

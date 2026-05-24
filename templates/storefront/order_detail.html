@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_number }} — {{ brand_name }}{% endblock %}
+{% block content %}
+<div class="pt-24 pb-20 max-w-3xl mx-auto px-4">
+  <h1 class="font-serif text-3xl">{{ order.order_number }}</h1>
+  <p class="mt-2 text-sm text-brand-muted">Placed {{ order.created_at|date:"d F Y, H:i" }}</p>
+  <div class="mt-8 p-6 bg-neutral-50">
+    <p class="text-xs tracking-widest uppercase text-brand-muted">Status</p>
+    <p class="mt-2 text-lg">{{ order.get_status_display }}</p>
+  </div>
+  <ol class="mt-10 relative border-l border-neutral-200 ml-3 space-y-8">
+    {% for entry in order.status_history.all %}
+    <li class="pl-8 relative">
+      <span class="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-brand"></span>
+      <p class="font-medium text-sm">{{ entry.get_status_display }}</p>
+      <p class="text-xs text-brand-muted">{{ entry.created_at|date:"d M Y, H:i" }}</p>
+      {% if entry.note %}<p class="text-sm text-brand-muted mt-1">{{ entry.note }}</p>{% endif %}
+    </li>
+    {% empty %}
+    <li class="pl-8 text-sm text-brand-muted">Tracking updates will appear here</li>
+    {% endfor %}
+  </ol>
+  <h2 class="mt-12 text-xs tracking-[0.2em] uppercase mb-4">Items</h2>
+  {% for item in order.items.all %}
+  <div class="flex justify-between py-4 border-b border-neutral-100 text-sm">
+    <span>{{ item.product_title }} — {{ item.color_name }} / {{ item.size_name }} × {{ item.quantity }}</span>
+    <span>£{{ item.line_total }}</span>
+  </div>
+  {% endfor %}
+  <p class="mt-6 text-right text-lg font-medium">Total: £{{ order.total }}</p>
+</div>
+{% endblock %}

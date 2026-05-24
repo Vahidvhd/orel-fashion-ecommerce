@@ -1,0 +1,27 @@
+{% extends "superusers/base.html" %}
+
+{% block content %}
+<h1 class="text-3xl font-semibold mb-6">Hero Content</h1>
+
+<div class="bg-white p-6 rounded border max-w-3xl">
+  <form method="post" enctype="multipart/form-data" class="space-y-6">
+    {% csrf_token %}
+
+    {% for field in form %}
+      <div>
+        <label class="block text-xs uppercase tracking-widest mb-2">
+          {{ field.label }}
+        </label>
+        {{ field }}
+        {% for error in field.errors %}
+          <p class="text-red-600 text-sm mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <button type="submit" class="bg-black text-white px-8 py-3 text-xs uppercase tracking-widest">
+      Save Hero
+    </button>
+  </form>
+</div>
+{% endblock %}

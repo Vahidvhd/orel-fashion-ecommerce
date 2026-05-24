@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Sign In — {{ brand_name }}{% endblock %}
+{% block content %}
+<div class="pt-24 pb-20 max-w-md mx-auto px-4">
+  <h1 class="font-serif text-3xl text-center mb-10">Sign In</h1>
+  <form method="post" class="space-y-6 auth-form">
+    {% csrf_token %}
+    {% for field in form %}
+    <div>
+      <label class="text-xs tracking-widest uppercase text-brand-muted">{{ field.label }}</label>
+      {{ field }}
+      {% for e in field.errors %}<p class="text-accent text-sm">{{ e }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+    {% if form.non_field_errors %}
+    <p class="text-accent text-sm">{{ form.non_field_errors.0 }}</p>
+    {% endif %}
+    <button type="submit" class="w-full py-4 bg-black text-white text-xs tracking-[0.2em] uppercase">
+      Sign In
+    </button>
+  </form>
+  <p class="mt-8 text-center text-sm"><a href="{% url 'storefront:register' %}" class="underline">Create account</a></p>
+</div>
+<style>.auth-form input { width:100%; border-bottom:1px solid #e5e5e5; padding:0.5rem 0; margin-top:0.25rem; }</style>
+{% endblock %}

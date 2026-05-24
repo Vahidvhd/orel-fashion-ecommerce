@@ -1,0 +1,18 @@
+{% extends "superusers/base.html" %}
+
+{% block content %}
+<section class="min-h-screen px-6 py-10">
+  <h1 class="text-3xl font-semibold mb-6">Orders</h1>
+
+  <div class="space-y-4">
+    {% for order in orders %}
+      <div class="border p-4 flex justify-between">
+        <span>Order #{{ order.id }}</span>
+        <span>{{ order.status }}</span>
+      </div>
+    {% empty %}
+      <p>No orders found.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

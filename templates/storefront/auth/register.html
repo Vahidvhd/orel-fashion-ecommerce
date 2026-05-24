@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Register — {{ brand_name }}{% endblock %}
+
+{% block content %}
+<div class="pt-24 pb-20 max-w-md mx-auto px-4">
+  <h1 class="font-serif text-3xl text-center mb-10">Create Account</h1>
+
+  <form method="post" class="space-y-6 auth-form">
+    {% csrf_token %}
+
+    {{ form.non_field_errors }}
+
+    {% for field in form %}
+      <div>
+        <label for="{{ field.id_for_label }}" class="text-xs tracking-widest uppercase text-brand-muted">
+          {{ field.label }}
+        </label>
+
+        {{ field }}
+
+        {% if field.help_text %}
+          <p class="text-xs text-brand-muted mt-1">{{ field.help_text }}</p>
+        {% endif %}
+
+        {% for error in field.errors %}
+          <p class="text-accent text-sm">{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+    <button type="submit" class="w-full py-4 bg-brand text-white text-xs tracking-[0.2em] uppercase">
+      Register
+    </button>
+  </form>
+
+  <p class="mt-8 text-center text-sm">
+    Already have an account?
+    <a href="{% url 'storefront:login' %}" class="underline">Sign in</a>
+  </p>
+</div>
+
+<style>
+  .auth-form input {
+    width: 100%;
+    border-bottom: 1px solid #e5e5e5;
+    padding: 0.5rem 0;
+    margin-top: 0.25rem;
+    outline: none;
+  }
+</style>
+{% endblock %}

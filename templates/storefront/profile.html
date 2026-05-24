@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}My Account — {{ brand_name }}{% endblock %}
+{% block content %}
+<div class="pt-24 pb-20 max-w-3xl mx-auto px-4">
+  <h1 class="font-serif text-3xl mb-2">Hello, {{ user.first_name }}</h1>
+  <p class="text-brand-muted text-sm mb-12">{{ user.email }}</p>
+  <h2 class="text-xs tracking-[0.2em] uppercase mb-6">Your Orders</h2>
+  {% if orders %}
+  <div class="space-y-4">
+    {% for order in orders %}
+    <a href="{% url 'storefront:order_detail' order_number=order.order_number %}" class="block border border-neutral-100 p-6 hover:border-brand transition-colors">
+      <div class="flex justify-between items-start">
+        <div>
+          <p class="font-medium">{{ order.order_number }}</p>
+          <p class="text-sm text-brand-muted mt-1">{{ order.created_at|date:"d M Y" }}</p>
+        </div>
+        <span class="text-xs tracking-wider uppercase px-3 py-1 bg-neutral-100">{{ order.get_status_display }}</span>
+      </div>
+      <p class="mt-4 text-sm">Total: £{{ order.total }}</p>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state py-12 text-center text-brand-muted">
+    <p>No orders yet</p>
+    <a href="{% url 'storefront:home' %}" class="inline-block mt-4 text-xs uppercase tracking-wider underline">Start shopping</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Payment — {{ brand_name }}{% endblock %}
+{% block content %}
+<div class="pt-24 pb-20 max-w-lg mx-auto px-4 text-center">
+  <h1 class="font-serif text-3xl mb-4">Payment</h1>
+  <p class="text-brand-muted text-sm mb-8">Stripe test mode — mock payment flow</p>
+  <form method="post" action="{% url 'storefront:checkout_pay_confirm' %}">
+    {% csrf_token %}
+    <button type="submit" class="w-full py-4 bg-brand text-white text-xs tracking-[0.2em] uppercase">
+      Pay with Card (Test)
+    </button>
+  </form>
+</div>
+{% endblock %}

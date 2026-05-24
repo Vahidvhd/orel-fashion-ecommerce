@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ brand_name }} — Premium Fashion{% endblock %}
+
+{% block content %}
+<section class="home-hero relative flex flex-col" style="height: calc(100vh - 4rem); min-height: 500px;">
+  <div class="absolute inset-0 overflow-hidden">
+    {% if active_hero and active_hero.hero_video %}
+    <video class="hero-media w-full h-full object-cover" autoplay muted loop playsinline>
+      <source src="{{ active_hero.hero_video.url }}" type="video/mp4">
+    </video>
+    {% elif active_hero and active_hero.hero_image %}
+    <img src="{{ active_hero.hero_image.url }}" alt="{{ active_hero.title }}" class="hero-media w-full h-full object-cover">
+    {% else %}
+    <div class="hero-media w-full h-full bg-gradient-to-br from-neutral-800 via-neutral-700 to-neutral-900"></div>
+    {% endif %}
+    <div class="absolute inset-0 bg-black/25"></div>
+  </div>
+  <div class="relative flex-1 flex items-end p-8 sm:p-12 lg:p-16">
+    <div class="max-w-2xl animate-hero-title">
+      <h1 class="font-serif text-4xl sm:text-5xl lg:text-7xl text-white font-light tracking-tight leading-tight">
+        {% if active_hero %}{{ active_hero.title }}{% else %}Autumn / Winter 2026{% endif %}
+      </h1>
+      {% if active_hero.subtitle %}
+      <p class="mt-4 text-white/80 text-sm sm:text-base tracking-wide">{{ active_hero.subtitle }}</p>
+      {% endif %}
+      {% if active_hero.cta_link %}
+      <a href="{{ active_hero.cta_link }}" class="inline-block mt-8 text-xs tracking-[0.25em] uppercase text-white border-b border-white pb-1 hover:opacity-70 transition-opacity">
+        {{ active_hero.cta_text|default:"Discover" }}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="py-24 sm:py-32 px-4 scroll-reveal" id="gender-cards">
+  <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+    <a href="{% url 'storefront:category' section='men' %}" class="gender-card group relative aspect-[3/4] overflow-hidden bg-neutral-100 reveal-up" style="--delay: 0ms">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+      <div class="absolute inset-0 bg-neutral-300 group-hover:scale-105 transition-transform duration-700 ease-luxury"></div>
+      <span class="absolute bottom-8 left-8 z-20 font-serif text-3xl text-white">Men</span>
+    </a>
+    <a href="{% url 'storefront:category' section='women' %}" class="gender-card group relative aspect-[3/4] overflow-hidden bg-neutral-100 reveal-up" style="--delay: 150ms">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+      <div class="absolute inset-0 bg-neutral-400 group-hover:scale-105 transition-transform duration-700 ease-luxury"></div>
+      <span class="absolute bottom-8 left-8 z-20 font-serif text-3xl text-white">Women</span>
+    </a>
+  </div>
+</section>
+
+<section class="py-20 border-t border-neutral-100">
+  <div class="max-w-7xl mx-auto px-4 text-center mb-12">
+    <h2 class="font-serif text-3xl">New Arrivals</h2>
+    <a href="{% url 'storefront:category' section='new' %}" class="inline-block mt-4 text-xs tracking-[0.2em] uppercase border-b border-brand pb-0.5 hover:opacity-60">View all</a>
+  </div>
+</section>
+{% endblock %}

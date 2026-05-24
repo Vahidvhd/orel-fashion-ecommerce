@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Checkout — {{ brand_name }}{% endblock %}
+
+{% block content %}
+<div class="pt-24 pb-20 max-w-6xl mx-auto px-4 grid lg:grid-cols-2 gap-16">
+  <div>
+    <h1 class="font-serif text-3xl mb-8">Shipping</h1>
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+      {% for field in form %}
+      <div>
+        <label class="text-xs tracking-widest uppercase text-brand-muted block mb-1">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<p class="text-accent text-sm mt-1">{{ field.errors.0 }}</p>{% endif %}
+      </div>
+      {% endfor %}
+      <button type="submit" class="w-full py-4 bg-brand text-white text-xs tracking-[0.2em] uppercase">Continue to Payment</button>
+    </form>
+  </div>
+  <div class="bg-neutral-50 p-8">
+    <h2 class="font-serif text-xl mb-6">Order Summary</h2>
+    {% for item in items %}
+    <div class="flex justify-between text-sm py-3 border-b border-neutral-200">
+      <span>{{ item.variant.product.title }} × {{ item.quantity }}</span>
+      <span>£{{ item.line_total }}</span>
+    </div>
+    {% endfor %}
+    <div class="flex justify-between mt-6 text-sm">
+      <span>Shipping</span>
+      <span>£4.99</span>
+    </div>
+    <div class="flex justify-between mt-4 text-lg font-medium">
+      <span>Total</span>
+      <span>£{{ order_total }}</span>
+    </div>
+  </div>
+</div>
+<style>
+  input, select, textarea { width: 100%; border-bottom: 1px solid #e5e5e5; padding: 0.5rem 0; background: transparent; }
+  input:focus { outline: none; border-color: #1a1a1a; }
+</style>
+{% endblock %}

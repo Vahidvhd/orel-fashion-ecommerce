@@ -1,0 +1,56 @@
+<footer class="bg-brand text-white mt-24">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+      <div>
+        <h3 class="font-serif text-xl mb-4">{{ brand_name }}</h3>
+        <p class="text-neutral-400 text-sm leading-relaxed">
+          42 Regent Street, London W1B 5RA<br>
+          18 King Street, Manchester M2 6AZ<br>
+          Valiasr Street 128, Tehran
+        </p>
+        <p class="mt-4 text-neutral-400 text-sm">
+          +44 20 7946 0123<br>
+          +44 161 496 0456<br>
+          +98 21 8876 2345
+        </p>
+      </div>
+      <div>
+        <h4 class="text-xs tracking-[0.2em] uppercase mb-4 text-neutral-400">Our Stores</h4>
+        <ul class="space-y-2 text-sm">
+          {% for branch in branches %}
+          <li>{{ branch.name }} — {{ branch.city }}</li>
+          {% empty %}
+          <li>London Flagship</li>
+          <li>Manchester</li>
+          <li>Tehran</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h4 class="text-xs tracking-[0.2em] uppercase mb-4 text-neutral-400">Customer Care</h4>
+        <ul class="space-y-2 text-sm text-neutral-300">
+          <li><a href="{% url 'storefront:profile' %}" class="hover:text-white transition-colors">My Orders</a></li>
+          <li><a href="{% url 'storefront:cart' %}" class="hover:text-white transition-colors">Shopping Bag</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Shipping & Returns</a></li>
+        </ul>
+      </div>
+    </div>
+    {% if branches %}
+    <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+      {% for branch in branches %}
+      <div class="branch-card bg-brand-light p-6 rounded-sm">
+        <h5 class="font-medium mb-2">{{ branch.name }}</h5>
+        <p class="text-sm text-neutral-400 mb-4">{{ branch.full_address }}</p>
+        <p class="text-sm">{{ branch.phone }}</p>
+        {% if branch.map_embed_url %}
+        <div class="mt-4 aspect-video bg-neutral-800 overflow-hidden rounded-sm">
+          <iframe src="{{ branch.map_embed_url }}" class="w-full h-full border-0" loading="lazy" title="Map for {{ branch.name }}"></iframe>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <p class="mt-12 text-center text-xs text-neutral-500 tracking-wider">&copy; {% now "Y" %} {{ brand_name }}. All rights reserved.</p>
+  </div>
+</footer>
