@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Max, Min, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -13,6 +13,7 @@ from django.views import View
 from django.views.generic import DetailView, FormView, ListView, TemplateView
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 
 from apps.accounts.forms import LoginForm, RegistrationForm, VerificationForm
 from apps.accounts.models import User
@@ -134,6 +135,7 @@ class CategoryView(ListView):
             Product.objects.prefetch_related("images", "variants__color", "variants__size"),
             section=section,
             category_slug=params.get("category"),
+            gender=params.get("gender"),
             min_price=min_p,
             max_price=max_p,
             color_slugs=params.getlist("color"),
@@ -142,18 +144,132 @@ class CategoryView(ListView):
             sort=params.get("sort", "newest"),
         )
 
+    
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["section"] = self.get_section()
-        ctx["section_label"] = self.get_section().title()
-        ctx["colors"] = Color.objects.filter(is_active=True)
-        ctx["sizes"] = Size.objects.filter(is_active=True)
         params = self.request.GET
-        ctx["filters"] = params
-        ctx["selected_colors"] = params.getlist("color")
-        ctx["selected_sizes"] = params.getlist("size")
-        return ctx
+        section = self.get_section()
 
+        ctx["section"] = section
+        ctx["section_label"] = section.title()
+
+        base_products = Product.objects.filter(is_active=True)
+
+        if section == "new":
+            base_products = base_products.filter(is_new_arrival=True)
+        elif section == "sale":
+            base_products = base_products.filter(
+                variants__discounts__is_active=True,
+                variants__discounts__starts_at__lte=timezone.now(),
+                variants__discounts__ends_at__gte=timezone.now(),
+            )
+        elif section in ["men", "women", "kids"]:
+            base_products = base_products.filter(
+                Q(gender=section) | Q(category__section=section)
+            )
+
+        base_products = base_products.distinct()
+
+        min_price = params.get("min_price")
+        max_price = params.get("max_price")
+
+        try:
+            min_p = Decimal(min_price) if min_price else None
+        except (InvalidOperation, TypeError):
+            min_p = None
+
+        try:
+            max_p = Decimal(max_price) if max_price else None
+        except (InvalidOperation, TypeError):
+            max_p = None
+
+        selected_gender = params.get("gender", "")
+        selected_colors = params.getlist("color")
+        selected_sizes = params.getlist("size")
+        on_sale = params.get("sale") == "1" or section == "sale"
+
+        def apply_filters(qs, exclude=None):
+            if selected_gender and exclude != "gender":
+                qs = qs.filter(gender=selected_gender)
+
+            if selected_colors and exclude != "color":
+                qs = qs.filter(
+                    variants__color__slug__in=selected_colors,
+                    variants__is_active=True,
+                )
+
+            if selected_sizes and exclude != "size":
+                qs = qs.filter(
+                    variants__size__slug__in=selected_sizes,
+                    variants__is_active=True,
+                )
+
+            if min_p is not None:
+                qs = qs.filter(
+                    variants__price__gte=min_p,
+                    variants__is_active=True,
+                )
+
+            if max_p is not None:
+                qs = qs.filter(
+                    variants__price__lte=max_p,
+                    variants__is_active=True,
+                )
+
+            if on_sale:
+                now = timezone.now()
+                qs = qs.filter(
+                    variants__discounts__is_active=True,
+                    variants__discounts__starts_at__lte=now,
+                    variants__discounts__ends_at__gte=now,
+                )
+
+            return qs.distinct()
+
+        color_base = apply_filters(base_products, exclude="color")
+        size_base = apply_filters(base_products, exclude="size")
+        gender_base = apply_filters(base_products, exclude="gender")
+        fully_filtered_products = apply_filters(base_products)
+
+        colors = list(Color.objects.filter(is_active=True))
+        for color in colors:
+            color.product_count = color_base.filter(
+                variants__color=color,
+                variants__is_active=True,
+            ).distinct().count()
+
+        sizes = list(Size.objects.filter(is_active=True))
+        for size in sizes:
+            size.product_count = size_base.filter(
+                variants__size=size,
+                variants__is_active=True,
+            ).distinct().count()
+
+        ctx["colors"] = colors
+        ctx["sizes"] = sizes
+
+        ctx["gender_counts"] = {
+            "men": gender_base.filter(gender="men").distinct().count(),
+            "women": gender_base.filter(gender="women").distinct().count(),
+            "kids": gender_base.filter(gender="kids").distinct().count(),
+        }
+
+        price_range = ProductVariant.objects.filter(
+            is_active=True,
+            product__in=fully_filtered_products,
+        ).aggregate(
+            min_price=Min("price"),
+            max_price=Max("price"),
+        )
+
+        ctx["price_min"] = price_range["min_price"] or 0
+        ctx["price_max"] = price_range["max_price"] or 0
+        ctx["selected_gender"] = selected_gender
+        ctx["filters"] = params
+        ctx["selected_colors"] = selected_colors
+        ctx["selected_sizes"] = selected_sizes
+
+        return ctx
 
 class ProductGridPartialView(CategoryView):
     """HTMX partial for dynamic filter updates."""

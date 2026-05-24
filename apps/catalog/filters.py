@@ -3,7 +3,43 @@ from decimal import Decimal
 from django.db.models import Min, Q
 from django.utils import timezone
 
-from apps.catalog.models import Discount, Product, ProductVariant
+from apps.catalog.models import Discount, ProductVariant
+
+
+def get_sale_product_ids():
+    now = timezone.now()
+    product_ids = set()
+
+    discounts = Discount.objects.filter(
+        is_active=True,
+        starts_at__lte=now,
+        ends_at__gte=now,
+    ).select_related("product", "variant", "color", "size")
+
+    for discount in discounts:
+        if discount.product_id:
+            product_ids.add(discount.product_id)
+
+        if discount.variant_id:
+            product_ids.add(discount.variant.product_id)
+
+        variant_qs = ProductVariant.objects.filter(is_active=True)
+
+        if discount.product_id:
+            variant_qs = variant_qs.filter(product_id=discount.product_id)
+
+        if discount.color_id:
+            variant_qs = variant_qs.filter(color_id=discount.color_id)
+
+        if discount.size_id:
+            variant_qs = variant_qs.filter(size_id=discount.size_id)
+
+        if discount.color_id or discount.size_id:
+            product_ids.update(
+                variant_qs.values_list("product_id", flat=True)
+            )
+
+    return product_ids
 
 
 def filter_products(
@@ -11,6 +47,7 @@ def filter_products(
     *,
     section=None,
     category_slug=None,
+    gender=None,
     min_price=None,
     max_price=None,
     color_slugs=None,
@@ -23,37 +60,39 @@ def filter_products(
     if section:
         if section == "new":
             qs = qs.filter(is_new_arrival=True)
+
         elif section == "sale":
-            now = timezone.now()
-            qs = qs.filter(
-                variants__discounts__is_active=True,
-                variants__discounts__starts_at__lte=now,
-                variants__discounts__ends_at__gte=now,
-            ).distinct()
+            qs = qs.filter(id__in=get_sale_product_ids())
+
         else:
-            qs = qs.filter(gender=section) | qs.filter(category__section=section)
+            qs = qs.filter(Q(gender=section) | Q(category__section=section))
+
+    if gender:
+        qs = qs.filter(gender=gender)
 
     if category_slug:
         qs = qs.filter(category__slug=category_slug)
 
     variant_q = Q(variants__is_active=True)
+
     if color_slugs:
         variant_q &= Q(variants__color__slug__in=color_slugs)
+
     if size_slugs:
         variant_q &= Q(variants__size__slug__in=size_slugs)
+
     if min_price is not None:
         variant_q &= Q(variants__price__gte=Decimal(str(min_price)))
+
     if max_price is not None:
         variant_q &= Q(variants__price__lte=Decimal(str(max_price)))
-    if on_sale:
-        now = timezone.now()
-        variant_q &= Q(
-            variants__discounts__is_active=True,
-            variants__discounts__starts_at__lte=now,
-            variants__discounts__ends_at__gte=now,
-        )
 
-    qs = qs.filter(variant_q).annotate(min_variant_price=Min("variants__price"))
+    qs = qs.filter(variant_q)
+
+    if on_sale:
+        qs = qs.filter(id__in=get_sale_product_ids())
+
+    qs = qs.annotate(min_variant_price=Min("variants__price"))
 
     if sort == "price_asc":
         qs = qs.order_by("min_variant_price")
@@ -67,9 +106,13 @@ def filter_products(
 
 def get_active_discounts_for_product(product):
     now = timezone.now()
+
     return Discount.objects.filter(
-        Q(product=product) | Q(variant__product=product),
+        Q(product=product) |
+        Q(variant__product=product) |
+        Q(color__productvariant__product=product) |
+        Q(size__productvariant__product=product),
         is_active=True,
         starts_at__lte=now,
         ends_at__gte=now,
-    ).select_related("variant", "color", "size")
+    ).distinct().select_related("variant", "color", "size")

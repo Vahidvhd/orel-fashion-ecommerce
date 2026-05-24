@@ -88,3 +88,16 @@ input:focus-visible {
 html {
   scroll-behavior: smooth;
 }
+
+
+.filter-summary::-webkit-details-marker {
+  display: none;
+}
+
+.filter-icon {
+  transition: transform 0.2s ease;
+}
+
+details[open] .filter-icon {
+  transform: rotate(45deg);
+}

@@ -1,0 +1,130 @@
+<div class="flex flex-col lg:flex-row gap-10">
+  <aside class="lg:w-64 shrink-0">
+    <form id="filter-form"
+      method="get"
+      hx-get="{% url 'storefront:product_grid_partial' %}"
+      hx-target="#product-grid"
+      hx-trigger="change delay:500ms, keyup changed delay:800ms"
+      hx-include="#filter-form"
+      hx-push-url="false"
+      hx-swap="innerHTML show:none settle:0ms focus-scroll:false"
+      class="text-sm">
+
+      <input type="hidden" name="section" value="{{ section }}">
+
+      <details open class="filter-panel border-b border-neutral-200 py-5">
+        <summary class="filter-summary flex justify-between cursor-pointer font-medium list-none">
+          Sort <span class="filter-icon text-lg leading-none">+</span>
+        </summary>
+
+        <select name="sort" class="mt-4 w-full border-b border-neutral-200 py-2 bg-transparent outline-none">
+          <option value="newest" {% if filters.sort == "newest" or not filters.sort %}selected{% endif %}>Newest</option>
+          <option value="price_asc" {% if filters.sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+          <option value="price_desc" {% if filters.sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+        </select>
+      </details>
+
+      <details open class="filter-panel border-b border-neutral-200 py-5">
+        <summary class="filter-summary flex justify-between cursor-pointer font-medium list-none">
+          Gender <span class="filter-icon text-lg leading-none">+</span>
+        </summary>
+
+        <div class="mt-4 space-y-3">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" name="gender" value="" {% if not selected_gender %}checked{% endif %}>
+            <span>All</span>
+          </label>
+
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" name="gender" value="men" {% if selected_gender == "men" %}checked{% endif %}>
+            <span>Men</span>
+            <span class="text-neutral-400">({{ gender_counts.men }})</span>
+          </label>
+
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" name="gender" value="women" {% if selected_gender == "women" %}checked{% endif %}>
+            <span>Women</span>
+            <span class="text-neutral-400">({{ gender_counts.women }})</span>
+          </label>
+
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="radio" name="gender" value="kids" {% if selected_gender == "kids" %}checked{% endif %}>
+            <span>Kids</span>
+            <span class="text-neutral-400">({{ gender_counts.kids }})</span>
+          </label>
+        </div>
+      </details>
+
+      <details open class="filter-panel border-b border-neutral-200 py-5">
+        <summary class="filter-summary flex justify-between cursor-pointer font-medium list-none">
+          Size <span class="filter-icon text-lg leading-none">+</span>
+        </summary>
+
+        <div class="mt-4 space-y-2">
+          {% for size in sizes %}
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="size" value="{{ size.slug }}" {% if size.slug in selected_sizes %}checked{% endif %}>
+              <span class="w-2 h-2 rounded-full bg-neutral-300"></span>
+              <span>{{ size.name }}</span>
+              <span class="text-neutral-400">({{ size.product_count }})</span>
+            </label>
+          {% endfor %}
+        </div>
+      </details>
+
+      <details open class="filter-panel border-b border-neutral-200 py-5">
+        <summary class="filter-summary flex justify-between cursor-pointer font-medium list-none">
+          Colour <span class="filter-icon text-lg leading-none">+</span>
+        </summary>
+
+        <div class="mt-4 grid grid-cols-3 gap-4">
+          {% for color in colors %}
+            <label class="text-center cursor-pointer">
+              <input type="checkbox" name="color" value="{{ color.slug }}" class="hidden peer" {% if color.slug in selected_colors %}checked{% endif %}>
+
+              <span class="mx-auto block w-8 h-8 rounded-full border border-neutral-300 peer-checked:ring-2 peer-checked:ring-black"
+                    style="background: {{ color.hex_code }}"></span>
+
+              <span class="block text-xs mt-1">{{ color.name }}</span>
+              <span class="block text-xs text-neutral-400">({{ color.product_count }})</span>
+            </label>
+          {% endfor %}
+        </div>
+      </details>
+
+      <details open class="filter-panel border-b border-neutral-200 py-5">
+        <summary class="filter-summary flex justify-between cursor-pointer font-medium list-none">
+          Price <span class="filter-icon text-lg leading-none">+</span>
+        </summary>
+
+        <div class="mt-4">
+          <div class="flex gap-2">
+            <input type="number" name="min_price" placeholder="Min" value="{{ filters.min_price }}" class="w-full border-b py-2 outline-none">
+            <input type="number" name="max_price" placeholder="Max" value="{{ filters.max_price }}" class="w-full border-b py-2 outline-none">
+          </div>
+
+          <p class="text-xs text-center text-neutral-500 mt-3">
+            From £{{ price_min }} - To £{{ price_max }}
+          </p>
+        </div>
+      </details>
+
+      <details open class="filter-panel border-b border-neutral-200 py-5">
+        <summary class="filter-summary flex justify-between cursor-pointer font-medium list-none">
+          Sale <span class="filter-icon text-lg leading-none">+</span>
+        </summary>
+
+        <label class="flex items-center gap-2 mt-4 cursor-pointer">
+          <input type="checkbox" name="sale" value="1" {% if filters.sale %}checked{% endif %}>
+          On sale only
+        </label>
+      </details>
+    </form>
+  </aside>
+
+  <div class="flex-1">
+    <div id="product-grid">
+      {% include "storefront/partials/product_grid.html" %}
+    </div>
+  </div>
+</div>

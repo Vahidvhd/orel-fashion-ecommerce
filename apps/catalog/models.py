@@ -122,13 +122,16 @@ class Product(models.Model):
         prices = [v.effective_price for v in self.variants.filter(is_active=True)]
         return min(prices) if prices else Decimal("0.00")
 
+
     @property
     def has_active_discount(self):
         now = timezone.now()
-        return self.variants.filter(
-            discounts__is_active=True,
-            discounts__starts_at__lte=now,
-            discounts__ends_at__gte=now,
+
+        return Discount.objects.filter(
+            models.Q(product=self) | models.Q(variant__product=self),
+            is_active=True,
+            starts_at__lte=now,
+            ends_at__gte=now,
         ).exists()
 
 
