@@ -1,11 +1,12 @@
-from django.shortcuts import redirect, render
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.catalog.models import Product, Discount
-from apps.core.models import Branch, HeroContent
+from apps.catalog.models import Discount, Product
+from apps.core.models import Branch, BusinessSettings, HeroContent
 from apps.orders.models import Order
 
 from .decorators import business_role_required
-from .forms import HeroContentForm
+from .forms import BranchForm, BusinessSettingsForm, HeroContentForm
 
 
 @business_role_required(["owner", "finance", "sales", "inventory"])
@@ -36,8 +37,52 @@ def discounts(request):
 
 @business_role_required(["owner"])
 def branches(request):
+    business_settings = BusinessSettings.get_settings()
+    branch_id = request.GET.get("edit")
+    editing_branch = None
+
+    if branch_id:
+        editing_branch = get_object_or_404(Branch, pk=branch_id)
+
+    settings_form = BusinessSettingsForm(instance=business_settings)
+    branch_form = BranchForm(instance=editing_branch)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "save_settings":
+            settings_form = BusinessSettingsForm(request.POST, instance=business_settings)
+            if settings_form.is_valid():
+                settings_form.save()
+                messages.success(request, "Business settings updated.")
+                return redirect("superusers:branches")
+
+        elif action == "save_branch":
+            branch_pk = request.POST.get("branch_id")
+            branch_instance = None
+
+            if branch_pk:
+                branch_instance = get_object_or_404(Branch, pk=branch_pk)
+
+            branch_form = BranchForm(request.POST, instance=branch_instance)
+            if branch_form.is_valid():
+                branch_form.save()
+                messages.success(request, "Branch saved.")
+                return redirect("superusers:branches")
+
+        elif action == "delete_branch":
+            branch_pk = request.POST.get("branch_id")
+            branch = get_object_or_404(Branch, pk=branch_pk)
+            branch.delete()
+            messages.success(request, "Branch deleted.")
+            return redirect("superusers:branches")
+
     return render(request, "superusers/branches.html", {
         "branches": Branch.objects.all(),
+        "business_settings": business_settings,
+        "settings_form": settings_form,
+        "branch_form": branch_form,
+        "editing_branch": editing_branch,
     })
 
 

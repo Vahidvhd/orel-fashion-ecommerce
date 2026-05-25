@@ -1,56 +1,123 @@
-<footer class="bg-brand text-white mt-24">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+<footer class="relative mt-24 overflow-hidden bg-gradient-to-br from-neutral-950 via-stone-900 to-neutral-800 text-white">
+  <div class="absolute inset-0 opacity-20">
+    <div class="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-white/10 blur-3xl"></div>
+    <div class="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-stone-500/20 blur-3xl"></div>
+  </div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid grid-cols-1 lg:grid-cols-[0.8fr_1.9fr_0.8fr] gap-10 lg:gap-12 items-start">
       <div>
-        <h3 class="font-serif text-xl mb-4">{{ brand_name }}</h3>
-        <p class="text-neutral-400 text-sm leading-relaxed">
-          42 Regent Street, London W1B 5RA<br>
-          18 King Street, Manchester M2 6AZ<br>
-          Valiasr Street 128, Tehran
-        </p>
-        <p class="mt-4 text-neutral-400 text-sm">
-          +44 20 7946 0123<br>
-          +44 161 496 0456<br>
-          +98 21 8876 2345
-        </p>
+        <h3 class="font-serif text-2xl tracking-wide">
+          {{ brand_name }}
+        </h3>
       </div>
-      <div>
-        <h4 class="text-xs tracking-[0.2em] uppercase mb-4 text-neutral-400">Our Stores</h4>
-        <ul class="space-y-2 text-sm">
+
+      {% if show_branches and branches %}
+      <div class="min-w-0">
+        <h4 class="text-xs tracking-[0.2em] uppercase mb-4 text-neutral-400">
+          Our Stores
+        </h4>
+
+        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2 text-sm text-neutral-200 max-w-[620px]">
           {% for branch in branches %}
-          <li>{{ branch.name }} — {{ branch.city }}</li>
-          {% empty %}
-          <li>London Flagship</li>
-          <li>Manchester</li>
-          <li>Tehran</li>
+          <li class="max-w-[280px] truncate whitespace-nowrap">
+            {{ branch.city }} — {{ branch.address }}
+          </li>
           {% endfor %}
         </ul>
       </div>
+      {% endif %}
+
       <div>
-        <h4 class="text-xs tracking-[0.2em] uppercase mb-4 text-neutral-400">Customer Care</h4>
+        <h4 class="text-xs tracking-[0.2em] uppercase mb-4 text-neutral-400">
+          Customer Care
+        </h4>
+
         <ul class="space-y-2 text-sm text-neutral-300">
-          <li><a href="{% url 'storefront:profile' %}" class="hover:text-white transition-colors">My Orders</a></li>
-          <li><a href="{% url 'storefront:cart' %}" class="hover:text-white transition-colors">Shopping Bag</a></li>
-          <li><a href="#" class="hover:text-white transition-colors">Shipping & Returns</a></li>
+          <li>
+            <a href="{% url 'storefront:profile' %}" class="hover:text-white transition-colors">
+              My Orders
+            </a>
+          </li>
+          <li>
+            <a href="{% url 'storefront:cart' %}" class="hover:text-white transition-colors">
+              Shopping Bag
+            </a>
+          </li>
+          <li>
+            <a href="#" class="hover:text-white transition-colors">
+              Shipping & Returns
+            </a>
+          </li>
         </ul>
       </div>
     </div>
-    {% if branches %}
-    <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-      {% for branch in branches %}
-      <div class="branch-card bg-brand-light p-6 rounded-sm">
-        <h5 class="font-medium mb-2">{{ branch.name }}</h5>
-        <p class="text-sm text-neutral-400 mb-4">{{ branch.full_address }}</p>
-        <p class="text-sm">{{ branch.phone }}</p>
-        {% if branch.map_embed_url %}
-        <div class="mt-4 aspect-video bg-neutral-800 overflow-hidden rounded-sm">
-          <iframe src="{{ branch.map_embed_url }}" class="w-full h-full border-0" loading="lazy" title="Map for {{ branch.name }}"></iframe>
+
+    {% if show_branches and branches %}
+    <div class="mt-16 overflow-x-auto pb-5">
+      <div class="flex gap-6 w-max mx-auto">
+        {% for branch in branches %}
+        <div class="branch-card flex h-[400px] w-[320px] shrink-0 flex-col rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur">
+          <h5 class="mb-3 font-medium">
+            {{ branch.city }}
+          </h5>
+
+          <div class="space-y-2 text-sm">
+            <p class="text-neutral-300 leading-relaxed line-clamp-3">
+              <span class="block text-xs tracking-[0.18em] uppercase text-neutral-500 mb-1">
+                Address
+              </span>
+              {{ branch.full_address }}
+            </p>
+
+            {% if branch.phone %}
+            <p class="text-neutral-300">
+              <span class="text-xs tracking-[0.18em] uppercase text-neutral-500">
+                Tel:
+              </span>
+              <span class="ml-2">{{ branch.phone }}</span>
+            </p>
+            {% endif %}
+
+            {% if branch.opening_hours %}
+            <p class="text-neutral-400 line-clamp-1">
+              {{ branch.opening_hours }}
+            </p>
+            {% endif %}
+          </div>
+
+          <div class="mt-auto pt-3">
+            {% if branch.map_embed_url %}
+            <div class="aspect-video overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-white/10">
+              <iframe
+                src="{{ branch.map_embed_url }}"
+                class="w-full h-full border-0"
+                loading="lazy"
+                title="Map for {{ branch.city }}">
+              </iframe>
+            </div>
+            {% endif %}
+
+            {% if branch.open_in_google_maps_url %}
+            <a
+              href="{{ branch.open_in_google_maps_url }}"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex mt-3 text-xs tracking-[0.18em] uppercase text-white border-b border-white/40 hover:border-white transition-colors">
+              Open in Google Maps
+            </a>
+            {% endif %}
+          </div>
         </div>
-        {% endif %}
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
     {% endif %}
-    <p class="mt-12 text-center text-xs text-neutral-500 tracking-wider">&copy; {% now "Y" %} {{ brand_name }}. All rights reserved.</p>
+
+    <div class="mt-12 border-t border-white/10 pt-8">
+      <p class="text-center text-xs text-neutral-400 tracking-wider">
+        &copy; {% now "Y" %} {{ brand_name }}. All rights reserved.
+      </p>
+    </div>
   </div>
 </footer>

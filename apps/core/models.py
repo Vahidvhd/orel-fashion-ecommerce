@@ -1,3 +1,5 @@
+from urllib.parse import quote_plus
+
 from django.db import models
 
 
@@ -29,23 +31,56 @@ class HeroContent(models.Model):
         return bool(self.hero_image)
 
 
+class BusinessSettings(models.Model):
+    ONLINE_ONLY = "online"
+    PHYSICAL_STORE = "physical"
+
+    STORE_TYPE_CHOICES = [
+        (ONLINE_ONLY, "Online shop only"),
+        (PHYSICAL_STORE, "Physical store"),
+    ]
+
+    store_type = models.CharField(
+        max_length=20,
+        choices=STORE_TYPE_CHOICES,
+        default=ONLINE_ONLY,
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "business settings"
+        verbose_name_plural = "business settings"
+
+    def __str__(self):
+        return self.get_store_type_display()
+
+    @classmethod
+    def get_settings(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def is_online_only(self):
+        return self.store_type == self.ONLINE_ONLY
+
+    @property
+    def is_physical_store(self):
+        return self.store_type == self.PHYSICAL_STORE
+
+
 class Branch(models.Model):
     name = models.CharField(max_length=150)
-    address_line1 = models.CharField(max_length=255)
-    address_line2 = models.CharField(max_length=255, blank=True)
+    address = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
     postcode = models.CharField(max_length=20)
     country = models.CharField(max_length=100, default="United Kingdom")
     phone = models.CharField(max_length=30)
-    email = models.EmailField(blank=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    map_embed_url = models.URLField(
-        blank=True,
-        help_text="Google Maps embed URL or static map link",
-    )
-    opening_hours = models.CharField(max_length=255, blank=True)
-    is_active = models.BooleanField(default=True)
+    email = models.EmailField()
+    opening_hours = models.CharField(max_length=255)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7)
+    google_maps_link = models.URLField()
+    active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -57,5 +92,32 @@ class Branch(models.Model):
 
     @property
     def full_address(self):
-        parts = [self.address_line1, self.address_line2, self.city, self.postcode, self.country]
+        parts = [self.address, self.city, self.postcode, self.country]
         return ", ".join(p for p in parts if p)
+
+    @property
+    def has_coordinates(self):
+        return self.latitude is not None and self.longitude is not None
+
+    @property
+    def map_embed_url(self):
+        if self.has_coordinates:
+            return f"https://www.google.com/maps?q={self.latitude},{self.longitude}&output=embed"
+
+        if self.full_address:
+            return f"https://www.google.com/maps?q={quote_plus(self.full_address)}&output=embed"
+
+        return ""
+
+    @property
+    def open_in_google_maps_url(self):
+        if self.google_maps_link:
+            return self.google_maps_link
+
+        if self.has_coordinates:
+            return f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+
+        if self.full_address:
+            return f"https://www.google.com/maps/search/?api=1&query={quote_plus(self.full_address)}"
+
+        return ""
