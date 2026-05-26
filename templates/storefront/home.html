@@ -18,15 +18,41 @@
 
     <div class="showcase-title">
       <h1>{% if active_hero %}{{ active_hero.title }}{% else %}Autumn / Winter 2026{% endif %}</h1>
+
       {% if active_hero.subtitle %}
       <p>{{ active_hero.subtitle }}</p>
       {% endif %}
+
       {% if active_hero.cta_link %}
-      <a href="{{ active_hero.cta_link }}">{{ active_hero.cta_text|default:"Discover" }}</a>
+      <a href="{{ active_hero.cta_link }}">
+        {{ active_hero.cta_text|default:"Discover" }}
+      </a>
       {% endif %}
     </div>
 
     <div class="showcase-cards">
+      {% for card in home_feature_cards %}
+      <a
+        href="{{ card.link|default:'#' }}"
+        class="showcase-card showcase-card-{{ forloop.counter }}">
+
+        {% if card.image %}
+        <img
+          src="{{ card.image.url }}"
+          alt="{{ card.title }}"
+          class="showcase-card-img">
+        {% else %}
+        <div class="showcase-card-img bg-neutral-400"></div>
+        {% endif %}
+
+        <div class="showcase-card-shade"></div>
+
+        <div class="showcase-card-text">
+          <span>{{ card.label }}</span>
+          <strong>{{ card.title }}</strong>
+        </div>
+      </a>
+      {% empty %}
       <a href="{% url 'storefront:category' section='men' %}" class="showcase-card showcase-card-1">
         <div class="showcase-card-img bg-neutral-300"></div>
         <div class="showcase-card-shade"></div>
@@ -53,6 +79,7 @@
           <strong>Kids</strong>
         </div>
       </a>
+      {% endfor %}
     </div>
   </div>
 </section>

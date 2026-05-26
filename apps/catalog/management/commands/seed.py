@@ -5,12 +5,12 @@ Run: python manage.py seed
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from django.contrib.auth import get_user_model
 
 from apps.catalog.models import Category, Color, Discount, Product, ProductVariant, Size
-from apps.core.models import Branch, HeroContent
+from apps.core.models import Branch, HeroContent, HomeFeatureCard
 
 User = get_user_model()
 
@@ -22,6 +22,7 @@ class Command(BaseCommand):
         self.stdout.write("Seeding database...")
         self._seed_colors_sizes_categories()
         self._seed_hero()
+        self._seed_home_feature_cards()
         self._seed_branches()
         self._seed_products()
         self._seed_users()
@@ -40,6 +41,7 @@ class Command(BaseCommand):
             ("Cream", "#fffdd0"),
             ("Chocolate", "#7b3f00"),
         ]
+
         for name, hex_code in colors:
             Color.objects.get_or_create(name=name, defaults={"hex_code": hex_code})
 
@@ -51,6 +53,7 @@ class Command(BaseCommand):
             ("XL", 5),
             ("XXL", 6),
         ]
+
         for name, order in sizes:
             Size.objects.get_or_create(name=name, defaults={"sort_order": order})
 
@@ -65,11 +68,12 @@ class Command(BaseCommand):
             ("New Arrivals", Category.Section.NEW),
             ("Sale Items", Category.Section.SALE),
         ]
+
         for name, section in categories:
             Category.objects.get_or_create(name=name, section=section)
 
     def _seed_hero(self):
-        HeroContent.objects.get_or_create(
+        HeroContent.objects.update_or_create(
             title="Autumn / Winter 2026",
             defaults={
                 "subtitle": "Refined essentials for the modern wardrobe",
@@ -79,6 +83,37 @@ class Command(BaseCommand):
                 "sort_order": 0,
             },
         )
+
+    def _seed_home_feature_cards(self):
+        HomeFeatureCard.objects.all().delete()
+
+        cards = [
+            {
+                "label": "Orel Fashion",
+                "title": "Men",
+                "link": "/shop/men/",
+                "sort_order": 0,
+                "active": True,
+            },
+            {
+                "label": "New Collection",
+                "title": "Women",
+                "link": "/shop/women/",
+                "sort_order": 1,
+                "active": True,
+            },
+            {
+                "label": "Limited Offer",
+                "title": "Kids",
+                "link": "/shop/kids/",
+                "sort_order": 2,
+                "active": True,
+            },
+        ]
+
+        for card in cards:
+            HomeFeatureCard.objects.create(**card)
+
     def _seed_branches(self):
         Branch.objects.all().delete()
 
@@ -221,6 +256,7 @@ class Command(BaseCommand):
                 active=True,
                 **data,
             )
+
     def _seed_products(self):
         self.stdout.write("Resetting demo products...")
 

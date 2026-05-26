@@ -1,6 +1,6 @@
 from django import forms
 
-from apps.core.models import Branch, BusinessSettings, HeroContent
+from apps.core.models import Branch, BusinessSettings, HeroContent, HomeFeatureCard
 
 
 INPUT_CLASS = "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
@@ -19,6 +19,33 @@ class HeroContentForm(forms.ModelForm):
             "cta_link",
             "is_active",
         ]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": INPUT_CLASS}),
+            "subtitle": forms.TextInput(attrs={"class": INPUT_CLASS}),
+            "cta_text": forms.TextInput(attrs={"class": INPUT_CLASS}),
+            "cta_link": forms.TextInput(attrs={"class": INPUT_CLASS}),
+            "is_active": forms.CheckboxInput(attrs={"class": CHECKBOX_CLASS}),
+        }
+
+
+class HomeFeatureCardForm(forms.ModelForm):
+    class Meta:
+        model = HomeFeatureCard
+        fields = [
+            "label",
+            "title",
+            "image",
+            "link",
+            "active",
+            "sort_order",
+        ]
+        widgets = {
+            "label": forms.TextInput(attrs={"class": INPUT_CLASS}),
+            "title": forms.TextInput(attrs={"class": INPUT_CLASS}),
+            "link": forms.TextInput(attrs={"class": INPUT_CLASS}),
+            "sort_order": forms.NumberInput(attrs={"class": INPUT_CLASS}),
+            "active": forms.CheckboxInput(attrs={"class": CHECKBOX_CLASS}),
+        }
 
 
 class BusinessSettingsForm(forms.ModelForm):

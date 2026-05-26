@@ -1,5 +1,6 @@
 from urllib.parse import quote_plus
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -29,6 +30,33 @@ class HeroContent(models.Model):
     @property
     def has_image(self):
         return bool(self.hero_image)
+
+
+class HomeFeatureCard(models.Model):
+    label = models.CharField(max_length=80)
+    title = models.CharField(max_length=120)
+    image = models.ImageField(upload_to="home/cards/", blank=True, null=True)
+    link = models.CharField(max_length=255, blank=True)
+    active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "title"]
+        verbose_name = "home feature card"
+        verbose_name_plural = "home feature cards"
+
+    def __str__(self):
+        return self.title
+
+    def clean(self):
+        if self.active:
+            active_cards = HomeFeatureCard.objects.filter(active=True)
+
+            if self.pk:
+                active_cards = active_cards.exclude(pk=self.pk)
+
+            if active_cards.count() >= 4:
+                raise ValidationError("You can only have up to 4 active home feature cards.")
 
 
 class BusinessSettings(models.Model):

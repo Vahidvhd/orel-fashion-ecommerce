@@ -1,0 +1,367 @@
+{% extends "superusers/base.html" %}
+
+{% block content %}
+<section class="min-h-screen px-6 py-10">
+  <div class="mb-10">
+    <h1 class="text-3xl font-semibold">Website Settings</h1>
+    <p class="text-sm text-neutral-500 mt-2">
+      Manage homepage content, feature cards, business type, and branches.
+    </p>
+  </div>
+
+  <div class="space-y-8">
+
+    <div class="bg-white border border-neutral-200 rounded-2xl p-8">
+      <h2 class="text-xl font-semibold mb-6">Hero Content</h2>
+
+      <form method="post" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_hero">
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Title</label>
+          {{ hero_form.title }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Subtitle</label>
+          {{ hero_form.subtitle }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Hero Image</label>
+          {{ hero_form.hero_image }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Hero Video</label>
+          {{ hero_form.hero_video }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">CTA Text</label>
+          {{ hero_form.cta_text }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">CTA Link</label>
+          {{ hero_form.cta_link }}
+        </div>
+
+        <div class="flex items-center gap-3">
+          {{ hero_form.is_active }}
+          <label class="text-sm font-medium">Active</label>
+        </div>
+
+        <div class="md:col-span-2">
+          <button class="px-5 py-3 bg-black text-white rounded-xl">Save Hero</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="bg-white border border-neutral-200 rounded-2xl p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-xl font-semibold">Homepage Feature Cards</h2>
+          <p class="text-sm text-neutral-500 mt-1">Use 3 or 4 active cards.</p>
+        </div>
+
+        <button
+          type="button"
+          onclick="
+            document.getElementById('card-form').reset();
+            document.getElementById('card-id-input').value = '';
+            document.getElementById('delete-card-id').value = '';
+            document.getElementById('card-image-preview').classList.add('hidden');
+          "
+          class="px-5 py-3 bg-black text-white rounded-xl">
+          + Add Card
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+        {% for card in home_feature_cards %}
+        <button
+          type="button"
+          onclick="
+            document.getElementById('id_label').value = `{{ card.label|escapejs }}`;
+            document.getElementById('id_title').value = `{{ card.title|escapejs }}`;
+            document.getElementById('id_link').value = `{{ card.link|escapejs }}`;
+            document.getElementById('id_sort_order').value = `{{ card.sort_order }}`;
+            document.getElementById('id_active').checked = {% if card.active %}true{% else %}false{% endif %};
+            document.getElementById('card-id-input').value = '{{ card.id }}';
+            document.getElementById('delete-card-id').value = '{{ card.id }}';
+
+            const preview = document.getElementById('card-image-preview');
+            {% if card.image %}
+              preview.src = '{{ card.image.url }}';
+              preview.classList.remove('hidden');
+            {% else %}
+              preview.classList.add('hidden');
+            {% endif %}
+          "
+          class="text-left block border rounded-2xl overflow-hidden hover:shadow-lg transition bg-white">
+          <div class="h-40 bg-neutral-200">
+            {% if card.image %}
+            <img src="{{ card.image.url }}" alt="{{ card.title }}" class="w-full h-full object-cover">
+            {% endif %}
+          </div>
+
+          <div class="p-4">
+            <p class="text-xs uppercase tracking-[0.18em] text-neutral-500">{{ card.label }}</p>
+            <h3 class="font-semibold mt-1">{{ card.title }}</h3>
+            <p class="text-xs text-neutral-500 mt-2">Sort: {{ card.sort_order }}</p>
+          </div>
+        </button>
+        {% empty %}
+        <p class="text-sm text-neutral-500">No homepage cards yet.</p>
+        {% endfor %}
+      </div>
+
+      <form id="card-form" method="post" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-2 gap-5 border-t pt-8">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_card">
+        <input type="hidden" id="card-id-input" name="card_id" value="">
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Label</label>
+          {{ card_form.label }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Title</label>
+          {{ card_form.title }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Image</label>
+          {{ card_form.image }}
+
+          <img
+            id="card-image-preview"
+            src=""
+            class="hidden mt-3 h-32 w-40 rounded-xl object-cover border"
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Link</label>
+          {{ card_form.link }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Sort Order</label>
+          {{ card_form.sort_order }}
+        </div>
+
+        <div class="flex items-center gap-3 pt-8">
+          {{ card_form.active }}
+          <label class="text-sm font-medium">Active</label>
+        </div>
+
+        <div class="md:col-span-2 flex gap-3">
+          <button class="px-5 py-3 bg-black text-white rounded-xl">Save Card</button>
+
+          <button
+            type="button"
+            onclick="
+              document.getElementById('card-form').reset();
+              document.getElementById('card-id-input').value = '';
+              document.getElementById('delete-card-id').value = '';
+              document.getElementById('card-image-preview').classList.add('hidden');
+            "
+            class="px-5 py-3 border rounded-xl">
+            Clear
+          </button>
+        </div>
+      </form>
+
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_card">
+        <input type="hidden" id="delete-card-id" name="card_id" value="">
+        <button onclick="return confirm('Delete this card?')" class="px-5 py-3 bg-red-600 text-white rounded-xl">
+          Delete Card
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white border border-neutral-200 rounded-2xl p-8">
+      <h2 class="text-xl font-semibold mb-6">Business Settings</h2>
+
+      <form method="post" class="flex flex-col sm:flex-row gap-4 sm:items-end">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_settings">
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Store Type</label>
+          {{ settings_form.store_type }}
+        </div>
+
+        <button class="px-5 py-3 bg-black text-white rounded-xl">Save Settings</button>
+      </form>
+    </div>
+
+    <div class="bg-white border border-neutral-200 rounded-2xl p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold">Branches</h2>
+
+        {% if business_settings.is_physical_store %}
+        <button
+          type="button"
+          onclick="
+            document.getElementById('branch-form').reset();
+            document.getElementById('branch-id-input').value = '';
+            document.getElementById('delete-branch-id').value = '';
+          "
+          class="px-5 py-3 bg-black text-white rounded-xl">
+          + Add Branch
+        </button>
+        {% endif %}
+      </div>
+
+      {% if business_settings.is_physical_store %}
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+        {% for branch in branches %}
+        <button
+          type="button"
+          onclick="
+            document.getElementById('id_name').value = `{{ branch.name|escapejs }}`;
+            document.getElementById('id_address').value = `{{ branch.address|escapejs }}`;
+            document.getElementById('id_city').value = `{{ branch.city|escapejs }}`;
+            document.getElementById('id_postcode').value = `{{ branch.postcode|escapejs }}`;
+            document.getElementById('id_country').value = `{{ branch.country|escapejs }}`;
+            document.getElementById('id_phone').value = `{{ branch.phone|escapejs }}`;
+            document.getElementById('id_email').value = `{{ branch.email|escapejs }}`;
+            document.getElementById('id_opening_hours').value = `{{ branch.opening_hours|escapejs }}`;
+            document.getElementById('id_latitude').value = `{{ branch.latitude }}`;
+            document.getElementById('id_longitude').value = `{{ branch.longitude }}`;
+            document.getElementById('id_google_maps_link').value = `{{ branch.google_maps_link|escapejs }}`;
+            document.getElementById('id_sort_order').value = `{{ branch.sort_order }}`;
+            document.getElementById('id_active').checked = {% if branch.active %}true{% else %}false{% endif %};
+            document.getElementById('branch-id-input').value = '{{ branch.id }}';
+            document.getElementById('delete-branch-id').value = '{{ branch.id }}';
+          "
+          class="text-left block border border-neutral-200 rounded-2xl p-5 hover:shadow-lg transition bg-white">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">{{ branch.name }}</h3>
+            {% if branch.active %}
+            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+            {% else %}
+            <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">Inactive</span>
+            {% endif %}
+          </div>
+
+          <p class="text-sm text-neutral-500 mt-2">{{ branch.full_address }}</p>
+          <p class="text-sm text-neutral-500 mt-1">{{ branch.phone }}</p>
+        </button>
+        {% empty %}
+        <p class="text-sm text-neutral-500">No branches yet.</p>
+        {% endfor %}
+      </div>
+
+      <form id="branch-form" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-5 border-t pt-8">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_branch">
+        <input type="hidden" id="branch-id-input" name="branch_id" value="">
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Name</label>
+          {{ branch_form.name }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Phone</label>
+          {{ branch_form.phone }}
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium mb-2">Address</label>
+          {{ branch_form.address }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">City</label>
+          {{ branch_form.city }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Postcode</label>
+          {{ branch_form.postcode }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Country</label>
+          {{ branch_form.country }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Email</label>
+          {{ branch_form.email }}
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium mb-2">Opening Hours</label>
+          {{ branch_form.opening_hours }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Latitude</label>
+          {{ branch_form.latitude }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Longitude</label>
+          {{ branch_form.longitude }}
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium mb-2">Google Maps Link</label>
+          {{ branch_form.google_maps_link }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Sort Order</label>
+          {{ branch_form.sort_order }}
+        </div>
+
+        <div class="flex items-center gap-3 pt-8">
+          {{ branch_form.active }}
+          <label class="text-sm font-medium">Active</label>
+        </div>
+
+        <div class="md:col-span-2 flex gap-3">
+          <button class="px-5 py-3 bg-black text-white rounded-xl">Save Branch</button>
+
+          <button
+            type="button"
+            onclick="
+              document.getElementById('branch-form').reset();
+              document.getElementById('branch-id-input').value = '';
+              document.getElementById('delete-branch-id').value = '';
+            "
+            class="px-5 py-3 border rounded-xl">
+            Clear
+          </button>
+        </div>
+      </form>
+
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_branch">
+        <input type="hidden" id="delete-branch-id" name="branch_id" value="">
+        <button onclick="return confirm('Delete this branch?')" class="px-5 py-3 bg-red-600 text-white rounded-xl">
+          Delete Branch
+        </button>
+      </form>
+
+      {% else %}
+      <p class="text-sm text-neutral-500">
+        Branches are hidden because business type is online-only.
+      </p>
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+{% endblock %}

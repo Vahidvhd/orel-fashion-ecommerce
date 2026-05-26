@@ -14,9 +14,10 @@ urlpatterns = [
 
     path("discounts/", views.discounts, name="discounts"),
 
+    path("website-settings/", views.website_settings, name="website_settings"),
+
     path("branches/", views.branches, name="branches"),
+    path("hero/", views.hero_content, name="hero"),
 
     path("finance/", views.finance, name="finance"),
-
-    path("hero/", views.hero_content, name="hero"),
 ]
