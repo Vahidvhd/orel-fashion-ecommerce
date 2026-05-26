@@ -1,6 +1,12 @@
 from django import forms
 
-from apps.core.models import Branch, BusinessSettings, HeroContent, HomeFeatureCard
+from apps.core.models import (
+    Branch,
+    BusinessSettings,
+    HeroContent,
+    HomeFeatureCard,
+    HomeMediaSection,
+)
 
 
 INPUT_CLASS = "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
@@ -44,6 +50,27 @@ class HomeFeatureCardForm(forms.ModelForm):
             "title": forms.TextInput(attrs={"class": INPUT_CLASS}),
             "link": forms.TextInput(attrs={"class": INPUT_CLASS}),
             "sort_order": forms.NumberInput(attrs={"class": INPUT_CLASS}),
+            "active": forms.CheckboxInput(attrs={"class": CHECKBOX_CLASS}),
+        }
+
+
+class HomeMediaSectionForm(forms.ModelForm):
+    class Meta:
+        model = HomeMediaSection
+        fields = [
+            "title",
+            "subtitle",
+            "image_1",
+            "image_2",
+            "image_3",
+            "image_4",
+            "video",
+            "video_poster",
+            "active",
+        ]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": INPUT_CLASS}),
+            "subtitle": forms.TextInput(attrs={"class": INPUT_CLASS}),
             "active": forms.CheckboxInput(attrs={"class": CHECKBOX_CLASS}),
         }
 

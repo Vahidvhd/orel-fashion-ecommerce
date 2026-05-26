@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from apps.core.models import Branch, BusinessSettings, HeroContent, HomeFeatureCard
+from apps.core.models import (
+    Branch,
+    BusinessSettings,
+    HeroContent,
+    HomeFeatureCard,
+    HomeMediaSection,
+)
 
 
 @admin.register(HeroContent)
@@ -16,6 +22,13 @@ class HomeFeatureCardAdmin(admin.ModelAdmin):
     list_filter = ("active",)
     search_fields = ("title", "label")
     list_editable = ("active", "sort_order")
+
+
+@admin.register(HomeMediaSection)
+class HomeMediaSectionAdmin(admin.ModelAdmin):
+    list_display = ("title", "active", "updated_at")
+    list_filter = ("active",)
+    search_fields = ("title", "subtitle")
 
 
 @admin.register(BusinessSettings)

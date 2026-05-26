@@ -2,7 +2,13 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.catalog.models import Discount, Product
-from apps.core.models import Branch, BusinessSettings, HeroContent, HomeFeatureCard
+from apps.core.models import (
+    Branch,
+    BusinessSettings,
+    HeroContent,
+    HomeFeatureCard,
+    HomeMediaSection,
+)
 from apps.orders.models import Order
 
 from .decorators import business_role_required
@@ -11,6 +17,7 @@ from .forms import (
     BusinessSettingsForm,
     HeroContentForm,
     HomeFeatureCardForm,
+    HomeMediaSectionForm,
 )
 
 
@@ -44,6 +51,7 @@ def discounts(request):
 def website_settings(request):
     business_settings = BusinessSettings.get_settings()
     hero = HeroContent.objects.first()
+    media_section = HomeMediaSection.objects.first()
 
     branch_id = request.GET.get("edit_branch")
     card_id = request.GET.get("edit_card")
@@ -53,6 +61,7 @@ def website_settings(request):
 
     settings_form = BusinessSettingsForm(instance=business_settings)
     hero_form = HeroContentForm(instance=hero)
+    media_form = HomeMediaSectionForm(instance=media_section)
     branch_form = BranchForm(instance=editing_branch)
     card_form = HomeFeatureCardForm(instance=editing_card)
 
@@ -61,6 +70,7 @@ def website_settings(request):
 
         if action == "save_settings":
             settings_form = BusinessSettingsForm(request.POST, instance=business_settings)
+
             if settings_form.is_valid():
                 settings_form.save()
                 messages.success(request, "Business settings updated.")
@@ -68,14 +78,28 @@ def website_settings(request):
 
         elif action == "save_hero":
             hero_form = HeroContentForm(request.POST, request.FILES, instance=hero)
+
             if hero_form.is_valid():
                 hero_form.save()
                 messages.success(request, "Hero content updated.")
                 return redirect("superusers:website_settings")
 
+        elif action == "save_media_section":
+            media_form = HomeMediaSectionForm(
+                request.POST,
+                request.FILES,
+                instance=media_section,
+            )
+
+            if media_form.is_valid():
+                media_form.save()
+                messages.success(request, "Home media section updated.")
+                return redirect("superusers:website_settings")
+
         elif action == "save_branch":
             branch_pk = request.POST.get("branch_id")
             branch_instance = get_object_or_404(Branch, pk=branch_pk) if branch_pk else None
+
             branch_form = BranchForm(request.POST, instance=branch_instance)
 
             if branch_form.is_valid():
@@ -86,14 +110,21 @@ def website_settings(request):
         elif action == "delete_branch":
             branch_pk = request.POST.get("branch_id")
             branch = get_object_or_404(Branch, pk=branch_pk)
+
             branch.delete()
+
             messages.success(request, "Branch deleted.")
             return redirect("superusers:website_settings")
 
         elif action == "save_card":
             card_pk = request.POST.get("card_id")
             card_instance = get_object_or_404(HomeFeatureCard, pk=card_pk) if card_pk else None
-            card_form = HomeFeatureCardForm(request.POST, request.FILES, instance=card_instance)
+
+            card_form = HomeFeatureCardForm(
+                request.POST,
+                request.FILES,
+                instance=card_instance,
+            )
 
             if card_form.is_valid():
                 card_form.save()
@@ -103,7 +134,9 @@ def website_settings(request):
         elif action == "delete_card":
             card_pk = request.POST.get("card_id")
             card = get_object_or_404(HomeFeatureCard, pk=card_pk)
+
             card.delete()
+
             messages.success(request, "Home feature card deleted.")
             return redirect("superusers:website_settings")
 
@@ -112,6 +145,8 @@ def website_settings(request):
         "settings_form": settings_form,
         "hero": hero,
         "hero_form": hero_form,
+        "media_section": media_section,
+        "media_form": media_form,
         "branches": Branch.objects.all(),
         "branch_form": branch_form,
         "editing_branch": editing_branch,

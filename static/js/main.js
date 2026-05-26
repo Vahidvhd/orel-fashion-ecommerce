@@ -16,7 +16,9 @@
     { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
   );
 
-  document.querySelectorAll('.reveal-up').forEach((el) => revealObserver.observe(el));
+  document
+    .querySelectorAll('.reveal-up, .reveal-left, .reveal-right')
+    .forEach((el) => revealObserver.observe(el));
 
   const header = document.getElementById('site-header');
   let lastScrollY = window.scrollY;
@@ -39,9 +41,7 @@
   const title = document.querySelector('.showcase-title');
   const media = document.querySelector('.showcase-bg-media');
   const overlay = document.querySelector('.showcase-dark-overlay');
-  const card1 = document.querySelector('.showcase-card-1');
-  const card2 = document.querySelector('.showcase-card-2');
-  const card3 = document.querySelector('.showcase-card-3');
+  const showcaseCards = Array.from(document.querySelectorAll('.showcase-card'));
 
   let cardsTriggered = false;
 
@@ -57,17 +57,17 @@
       media.pause();
     }
 
-    setTimeout(() => card1 && card1.classList.add('is-visible'), 0);
-    setTimeout(() => card2 && card2.classList.add('is-visible'), 110);
-    setTimeout(() => card3 && card3.classList.add('is-visible'), 220);
+    showcaseCards.forEach((card, index) => {
+      setTimeout(() => card.classList.add('is-visible'), index * 110);
+    });
   }
 
   function resetCards() {
     cardsTriggered = false;
 
-    card1 && card1.classList.remove('is-visible');
-    card2 && card2.classList.remove('is-visible');
-    card3 && card3.classList.remove('is-visible');
+    showcaseCards.forEach((card) => {
+      card.classList.remove('is-visible');
+    });
 
     if (media && media.tagName.toLowerCase() === 'video') {
       media.play().catch(() => {});
@@ -75,7 +75,7 @@
   }
 
   function handleShowcaseHero() {
-    if (!hero || !title || !media || !overlay || !card1 || !card2 || !card3) return;
+    if (!hero || !title || !media || !overlay || !showcaseCards.length) return;
 
     const rect = hero.getBoundingClientRect();
     const scrollInside = -rect.top;
@@ -96,7 +96,6 @@
 
     if (progress >= 0.68) triggerCards();
     if (progress < 0.58) resetCards();
-
   }
 
   window.addEventListener('scroll', handleShowcaseHero, { passive: true });

@@ -25,6 +25,7 @@ from apps.cart.services import (
 )
 from apps.catalog.filters import filter_products, get_active_discounts_for_product
 from apps.catalog.models import Color, Product, ProductVariant, Size
+from apps.core.models import HomeFeatureCard, HomeMediaSection
 from apps.orders.forms import ShippingForm
 from apps.orders.models import Order
 from apps.orders.services import create_order_from_cart, mock_stripe_payment
@@ -106,6 +107,17 @@ class LoginView(FormView):
 class HomeView(TemplateView):
     template_name = "storefront/home.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["home_feature_cards"] = HomeFeatureCard.objects.filter(
+            active=True
+        ).order_by("sort_order")[:4]
+
+        context["media_section"] = HomeMediaSection.get_active()
+
+        return context
+    
 class CategoryView(ListView):
     template_name = "storefront/category.html"
     context_object_name = "products"

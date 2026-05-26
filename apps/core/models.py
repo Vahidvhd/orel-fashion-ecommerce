@@ -59,6 +59,38 @@ class HomeFeatureCard(models.Model):
                 raise ValidationError("You can only have up to 4 active home feature cards.")
 
 
+class HomeMediaSection(models.Model):
+    title = models.CharField(max_length=150, default="This Is OREL")
+    subtitle = models.CharField(max_length=255, blank=True)
+    image_1 = models.ImageField(upload_to="home/media/", blank=True, null=True)
+    image_2 = models.ImageField(upload_to="home/media/", blank=True, null=True)
+    image_3 = models.ImageField(upload_to="home/media/", blank=True, null=True)
+    image_4 = models.ImageField(upload_to="home/media/", blank=True, null=True)
+    video = models.FileField(upload_to="home/media/videos/", blank=True, null=True)
+    video_poster = models.ImageField(upload_to="home/media/posters/", blank=True, null=True)
+    active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "home media section"
+        verbose_name_plural = "home media section"
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def get_active(cls):
+        return cls.objects.filter(active=True).first()
+
+    @property
+    def images(self):
+        return [
+            image
+            for image in [self.image_1, self.image_2, self.image_3, self.image_4]
+            if image
+        ]
+
+
 class BusinessSettings(models.Model):
     ONLINE_ONLY = "online"
     PHYSICAL_STORE = "physical"

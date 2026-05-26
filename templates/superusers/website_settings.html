@@ -10,6 +10,69 @@
   </div>
 
   <div class="space-y-8">
+    <div class="bg-white border border-neutral-200 rounded-2xl p-8">
+      <h2 class="text-xl font-semibold mb-6">Homepage Media Section</h2>
+
+      <form
+        method="post"
+        enctype="multipart/form-data"
+        class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_media_section">
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Title</label>
+          {{ media_form.title }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Subtitle</label>
+          {{ media_form.subtitle }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Image 1</label>
+          {{ media_form.image_1 }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Image 2</label>
+          {{ media_form.image_2 }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Image 3</label>
+          {{ media_form.image_3 }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Image 4</label>
+          {{ media_form.image_4 }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Video</label>
+          {{ media_form.video }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">Video Poster</label>
+          {{ media_form.video_poster }}
+        </div>
+
+        <div class="flex items-center gap-3 pt-8">
+          {{ media_form.active }}
+          <label class="text-sm font-medium">Active</label>
+        </div>
+
+        <div class="md:col-span-2">
+          <button class="px-5 py-3 bg-black text-white rounded-xl">
+            Save Media Section
+          </button>
+        </div>
+      </form>
+    </div>
 
     <div class="bg-white border border-neutral-200 rounded-2xl p-8">
       <h2 class="text-xl font-semibold mb-6">Hero Content</h2>

@@ -84,6 +84,48 @@
   </div>
 </section>
 
+{% if media_section %}
+<section class="home-media-section">
+  <div class="home-media-layout">
+    <div class="home-media-gallery reveal-left">
+      {% for image in media_section.images %}
+      <div class="home-media-image-box home-media-image-{{ forloop.counter }}">
+        <img src="{{ image.url }}" alt="{{ media_section.title }}">
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="home-media-video-box reveal-right">
+      {% if media_section.video %}
+      <video
+        class="home-media-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        {% if media_section.video_poster %}poster="{{ media_section.video_poster.url }}"{% endif %}>
+        <source src="{{ media_section.video.url }}" type="video/mp4">
+      </video>
+      {% elif media_section.video_poster %}
+      <img
+        src="{{ media_section.video_poster.url }}"
+        alt="{{ media_section.title }}"
+        class="home-media-video">
+      {% else %}
+      <div class="home-media-video home-media-video-placeholder"></div>
+      {% endif %}
+
+      <div class="home-media-video-overlay"></div>
+
+      <div class="home-media-text">
+        <span>{{ media_section.subtitle|default:"OREL FASHION" }}</span>
+        <strong>{{ media_section.title }}</strong>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <section class="py-20 border-t border-neutral-100">
   <div class="max-w-7xl mx-auto px-4 text-center mb-12">
     <h2 class="font-serif text-3xl">New Arrivals</h2>
