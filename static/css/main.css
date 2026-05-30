@@ -313,3 +313,43 @@ body.showcase-header-hidden #site-header {
     min-height: 70vh;
   }
 }
+
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 2px;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transform: translateX(-50%);
+  transition: width 0.35s cubic-bezier(.19, 1, .22, 1);
+}
+
+.nav-link:hover {
+  transform: translateY(-1px);
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.mobile-nav-link {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.mobile-nav-link:hover {
+  opacity: 0.6;
+  transform: translateX(4px);
+}
+
